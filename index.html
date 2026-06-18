@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基于AI的城市内涝智能监测评估系统 - 宜春市</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+
+        #login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
+        .login-box { background: #fff; padding: 40px; border-radius: 12px; width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .login-box h1 { text-align: center; color: #1e3c72; font-size: 20px; margin-bottom: 8px; }
+        .login-box p { text-align: center; color: #999; font-size: 13px; margin-bottom: 24px; }
+        .login-box input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; transition: border 0.3s; }
+        .login-box input:focus { border-color: #2a5298; }
+        .login-box button { width: 100%; padding: 12px; background: #2a5298; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        .login-box button:hover { background: #1e3c72; }
+        .login-hint { text-align: center; margin-top: 16px; font-size: 12px; color: #999; line-height: 1.8; }
+        .login-hint span { font-weight: bold; }
+        .login-hint .admin-hint { color: #d32f2f; }
+        .login-hint .user-hint { color: #1565c0; }
+        .role-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .role-tab { flex: 1; padding: 10px; text-align: center; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .role-tab.active.admin { border-color: #d32f2f; background: #ffebee; color: #d32f2f; }
+        .role-tab.active.user { border-color: #1565c0; background: #e3f2fd; color: #1565c0; }
+
+        #main-app { display: none; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; padding-top: 20px; z-index: 100; }
+        .sidebar.admin-sidebar { background: #1e3c72; }
+        .sidebar.user-sidebar { background: #1565c0; }
+        .sidebar h2 { color: #fff; font-size: 15px; text-align: center; margin-bottom: 8px; padding: 0 16px; }
+        .sidebar .city-name { text-align: center; color: #90caf9; font-size: 12px; margin-bottom: 20px; }
+        .sidebar .role-badge { display: block; margin: 0 16px 20px; padding: 8px 12px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: bold; }
+        .role-badge.admin { background: rgba(211,47,47,0.2); color: #ff8a80; border: 1px solid rgba(211,47,47,0.4); }
+        .role-badge.user { background: rgba(255,255,255,0.15); color: #90caf9; border: 1px solid rgba(255,255,255,0.2); }
+        .sidebar nav a { display: block; padding: 12px 24px; color: #a0b4d8; text-decoration: none; font-size: 14px; transition: all 0.3s; border-left: 3px solid transparent; cursor: pointer; }
+        .sidebar nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .sidebar.admin-sidebar nav a.active { background: rgba(255,255,255,0.15); color: #fff; border-left-color: #4fc3f7; }
+        .sidebar.user-sidebar nav a.active { background: rgba(255,255,255,0.15); color: #fff; border-left-color: #80d8ff; }
+        .sidebar .user-info { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 24px; }
+        .sidebar .user-info p { color: #a0b4d8; font-size: 12px; margin-bottom: 8px; }
+        .sidebar .user-info button { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+        .main-content { margin-left: 220px; padding: 24px; min-height: 100vh; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .page-header h1 { font-size: 22px; color: #333; }
+
+        .admin-banner { background: linear-gradient(90deg, #d32f2f, #c62828); color: #fff; padding: 8px 24px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .user-banner { background: linear-gradient(90deg, #1565c0, #1976d2); color: #fff; padding: 8px 24px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-card .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #333; }
+        .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
+
+        .data-table { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .data-table table { width: 100%; border-collapse: collapse; }
+        .data-table th { background: #f5f7fa; padding: 12px 16px; text-align: left; font-size: 13px; color: #666; font-weight: 600; }
+        .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
+        .data-table tr:hover { background: #f9fbfc; }
+
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
+        .badge-yellow { background: #fff9c4; color: #f57f17; }
+        .badge-orange { background: #ffe0b2; color: #e65100; }
+        .badge-red { background: #ffcdd2; color: #c62828; }
+
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .status-online { background: #4caf50; }
+        .status-offline { background: #f44336; }
+
+        .btn { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #2a5298; color: #fff; }
+        .btn-primary:hover { background: #1e3c72; }
+        .btn-danger { background: #d32f2f; color: #fff; }
+        .btn-danger:hover { background: #b71c1c; }
+        .btn-success { background: #388e3c; color: #fff; }
+        .btn-success:hover { background: #2e7d32; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+        .prediction-result { background: #fff; border-radius: 12px; padding: 24px; margin-top: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .prediction-chart { width: 100%; height: 300px; background: #fafafa; border-radius: 8px; margin-top: 16px; }
+
+        .alert-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; }
+        .alert-item .left { flex: 1; }
+        .alert-item .device { font-weight: 600; font-size: 15px; color: #333; }
+        .alert-item .msg { font-size: 13px; color: #666; margin-top: 4px; }
+        .alert-item .time { font-size: 12px; color: #999; }
+
+        select { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; cursor: pointer; }
+        input { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        input:focus { border-color: #2a5298; }
+        textarea { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; resize: vertical; min-height: 80px; font-family: inherit; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
+        #modal-overlay.show { display: flex; }
+        .modal-box { background: #fff; border-radius: 12px; padding: 32px; width: 420px; max-height: 80vh; overflow-y: auto; }
+        .modal-box h3 { margin-bottom: 20px; color: #333; font-size: 18px; }
+        .modal-box label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; margin-top: 12px; }
+        .modal-box input, .modal-box select { width: 100%; margin-bottom: 4px; }
+        .modal-box .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-box .modal-btns button { flex: 1; }
+
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; }
+        .toast-msg { background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        .info-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .info-card h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+        .suggestion-box { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+        .suggestion-safe { background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; }
+        .suggestion-caution { background: #fff9c4; border-left: 4px solid #ffeb3b; color: #f57f17; }
+        .suggestion-danger { background: #ffebee; border-left: 4px solid #f44336; color: #c62828; }
+        .report-card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border-left: 4px solid #ddd; }
+        .report-card.pending { border-left-color: #ff9800; }
+        .report-card.verified { border-left-color: #2196f3; }
+        .report-card.resolved { border-left-color: #4caf50; }
+        .profile-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .profile-row .label { width: 120px; color: #666; font-size: 14px; }
+        .profile-row .value { flex: 1; color: #333; font-size: 14px; font-weight: 500; }
+        .alert-banner { background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: none; }
+        .alert-banner.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="toast"><div class="toast-msg" id="toast-msg"></div></div>
+<div id="modal-overlay"><div class="modal-box" id="modal-content"></div></div>
+
+<!-- ================== 登录页面 ================== -->
+<div id="login-page">
+    <div class="login-box">
+        <h1>城市内涝智能监测评估系统</h1>
+        <p>江西省宜春市 | 基于AI的积水预测与风险评估平台</p>
+        <div class="role-tabs">
+            <div class="role-tab admin active" onclick="switchLoginRole('admin')">管理员登录</div>
+            <div class="role-tab user" onclick="switchLoginRole('user')">用户登录</div>
+        </div>
+        <input type="text" id="login-username" placeholder="用户名" value="admin">
+        <input type="password" id="login-password" placeholder="密码" value="admin123">
+        <button onclick="doLogin()">登 录</button>
+        <div class="login-hint">
+            <div class="admin-hint">管理员: <span>admin / admin123</span> 或 <span>manager / manager123</span></div>
+            <div class="user-hint">用户: <span>user / user123</span> 或 <span>citizen01 / citizen123</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 主界面 ================== -->
+<div id="main-app">
+    <div class="sidebar admin-sidebar" id="sidebar">
+        <h2>城市内涝监测系统</h2>
+        <div class="city-name">江西省宜春市</div>
+        <div class="role-badge admin" id="role-badge">管理员模式</div>
+        <nav id="nav-menu"></nav>
+        <div class="user-info">
+            <p id="current-user">未登录</p>
+            <button onclick="doLogout()">退出登录</button>
+        </div>
+    </div>
+    <div class="main-content" id="main-content"></div>
+</div>
+
+<script>
+// ==================== 内置数据库（模拟后端） ====================
+let DB = {
+    users: [
+        { id: 1, username: 'admin', password: 'admin123', role: 'admin', phone: '13807950001', email: 'admin@yichun.gov.cn', created_at: '2026-01-15 09:00:00' },
+        { id: 2, username: 'user', password: 'user123', role: 'user', phone: '13807950002', email: 'zhangmin@163.com', created_at: '2026-01-20 14:30:00' },
+        { id: 3, username: 'citizen01', password: 'citizen123', role: 'user', phone: '13807950003', email: 'liming@163.com', created_at: '2026-02-01 10:00:00' },
+        { id: 4, username: 'citizen02', password: 'citizen123', role: 'user', phone: '13807950004', email: 'wangfang@163.com', created_at: '2026-02-05 11:20:00' },
+        { id: 5, username: 'manager', password: 'manager123', role: 'admin', phone: '13807950005', email: 'manager@yichun.gov.cn', created_at: '2026-01-10 08:00:00' },
+    ],
+    devices: [
+        { id: 1, device_id: 'DEV001', name: '袁山公园监测点', location: '宜春市袁州区袁山东路袁山公园', longitude: 114.3830, latitude: 27.8040, status: 'online', install_date: '2026-01-15', last_online: null },
+        { id: 2, device_id: 'DEV002', name: '秀江大桥监测点', location: '宜春市袁州区秀江中路秀江大桥', longitude: 114.3850, latitude: 27.8120, status: 'online', install_date: '2026-01-15', last_online: null },
+        { id: 3, device_id: 'DEV003', name: '宜春火车站监测点', location: '宜春市袁州区站前路宜春站', longitude: 114.4110, latitude: 27.7980, status: 'online', install_date: '2026-01-16', last_online: null },
+        { id: 4, device_id: 'DEV004', name: '润达国际监测点', location: '宜春市袁州区卢洲北路润达国际', longitude: 114.3880, latitude: 27.7950, status: 'online', install_date: '2026-01-16', last_online: null },
+        { id: 5, device_id: 'DEV005', name: '明月山机场监测点', location: '宜春市袁州区机场路明月山机场', longitude: 114.3240, latitude: 27.7690, status: 'online', install_date: '2026-01-17', last_online: null },
+        { id: 6, device_id: 'DEV006', name: '宜春学院监测点', location: '宜春市袁州区学府路宜春学院', longitude: 114.3530, latitude: 27.8300, status: 'online', install_date: '2026-01-17', last_online: null },
+    ],
+    flood_data: [],
+    alerts: [],
+    logs: [
+        { id: 1, user_id: 1, username: 'admin', action: '登录', detail: '管理员 admin 登录系统', ip_address: '127.0.0.1', created_at: '2026-06-17 14:32:01' },
+        { id: 2, user_id: 2, username: 'user', action: '数据查看', detail: '公众用户 user 查看了实时数据', ip_address: '127.0.0.1', created_at: '2026-06-17 15:20:33' },
+        { id: 3, user_id: 1, username: 'admin', action: '设备管理', detail: '管理员添加设备 DEV006 宜春学院监测点', ip_address: '127.0.0.1', created_at: '2026-06-17 16:45:12' },
+        { id: 4, user_id: 3, username: 'citizen01', action: '公众上报', detail: '公众用户 citizen01 上报了秀江大桥积水', ip_address: '192.168.1.10', created_at: '2026-06-18 08:15:44' },
+        { id: 5, user_id: 1, username: 'admin', action: '系统配置', detail: '管理员修改了预警阈值参数', ip_address: '127.0.0.1', created_at: '2026-06-18 09:30:00' },
+        { id: 6, user_id: 4, username: 'citizen02', action: '出行辅助', detail: '公众用户 citizen02 查看了出行建议', ip_address: '192.168.1.20', created_at: '2026-06-18 10:05:22' },
+        { id: 7, user_id: 5, username: 'manager', action: '登录', detail: '管理员 manager 登录系统', ip_address: '127.0.0.1', created_at: '2026-06-18 10:30:15' },
+        { id: 8, user_id: 2, username: 'user', action: '预警查看', detail: '公众用户 user 查看了预警信息', ip_address: '127.0.0.1', created_at: '2026-06-18 11:00:00' },
+    ],
+    reports: [
+        { id: 1, user_id: 2, reporter_name: '张市民', reporter_phone: '13807951001', location: '袁州区秀江中路秀江大桥下', water_depth: '中等', description: '桥下积水严重，车辆无法通行，建议绕行', status: 'verified', admin_reply: '已安排市政人员处理', created_at: '2026-06-18 06:30:00' },
+        { id: 2, user_id: 2, reporter_name: '李女士', reporter_phone: '13807951002', location: '袁州区卢洲北路润达国际门口', water_depth: '轻微', description: '路边有少量积水，行人小心通过', status: 'resolved', admin_reply: '积水已消退', created_at: '2026-06-17 18:00:00' },
+        { id: 3, user_id: 2, reporter_name: '王先生', reporter_phone: '13807951003', location: '袁州区站前路宜春站出站口', water_depth: '严重', description: '出站口积水到膝盖，很多旅客滞留', status: 'verified', admin_reply: '已通知交警和市政', created_at: '2026-06-18 08:30:00' },
+        { id: 4, user_id: 2, reporter_name: '刘师傅', reporter_phone: '13807951004', location: '袁州区学府路宜春学院南门', water_depth: '中等', description: '南门路面积水较深，骑电动车容易摔倒', status: 'pending', admin_reply: '', created_at: '2026-06-18 09:45:00' },
+    ],
+    nextDeviceId: 7,
+    nextUserId: 6,
+    nextReportId: 5,
+    nextLogId: 9,
+};
+
+// 初始化积水数据
+function initFloodData() {
+    const baseLevels = { DEV001: 0.08, DEV002: 0.25, DEV003: 0.15, DEV004: 0.12, DEV005: 0.06, DEV006: 0.18 };
+    const now = new Date();
+    for (const dev of DB.devices) {
+        const base = baseLevels[dev.device_id] || 0.15;
+        for (let i = 19; i >= 0; i--) {
+            const time = new Date(now.getTime() - i * 30 * 60 * 1000);
+            const waterLevel = Math.max(0.02, base + (Math.random() - 0.3) * 0.4);
+            const wl = Math.round(waterLevel * 100) / 100;
+            const risk = getRiskLevel(wl);
+            DB.flood_data.push({
+                device_id: dev.device_id,
+                water_level: wl,
+                risk_level: risk,
+                collect_time: formatTime(time)
+            });
+            if (risk === 'orange' || risk === 'red') {
+                const riskText = risk === 'orange' ? '橙色预警' : '红色危险';
+                DB.alerts.unshift({
+                    id: DB.alerts.length + 1,
+                    device_id: dev.device_id,
+                    device_name: dev.name,
+                    alert_type: '水位预警',
+                    risk_level: risk,
+                    water_level: wl,
+                    message: `宜春市${dev.name}积水深度达到 ${wl}m，触发${riskText}`,
+                    is_read: 0,
+                    created_at: formatTime(time)
+                });
+            }
+        }
+    }
+}
+
+// 模拟数据更新（每30秒）
+function simulateUpdate() {
+    const baseLevels = { DEV001: 0.08, DEV002: 0.25, DEV003: 0.15, DEV004: 0.12, DEV005: 0.06, DEV006: 0.18 };
+    const now = new Date();
+    for (const dev of DB.devices) {
+        const base = baseLevels[dev.device_id] || 0.15;
+        const waterLevel = Math.max(0.02, base + (Math.random() - 0.3) * 0.4);
+        const wl = Math.round(waterLevel * 100) / 100;
+        const risk = getRiskLevel(wl);
+        const timeStr = formatTime(now);
+        DB.flood_data.push({ device_id: dev.device_id, water_level: wl, risk_level: risk, collect_time: timeStr });
+        // 只保留最近50条
+        const devData = DB.flood_data.filter(d => d.device_id === dev.device_id);
+        if (devData.length > 50) {
+            const toRemove = devData.length - 50;
+            for (let i = 0; i < toRemove; i++) {
+                const idx = DB.flood_data.indexOf(devData[i]);
+                if (idx > -1) DB.flood_data.splice(idx, 1);
+            }
+        }
+        if (risk === 'orange' || risk === 'red') {
+            const riskText = risk === 'orange' ? '橙色预警' : '红色危险';
+            DB.alerts.unshift({
+                id: DB.alerts.length + 1,
+                device_id: dev.device_id,
+                device_name: dev.name,
+                alert_type: '水位预警',
+                risk_level: risk,
+                water_level: wl,
+                message: `宜春市${dev.name}积水深度达到 ${wl}m，触发${riskText}`,
+                is_read: 0,
+                created_at: timeStr
+            });
+            if (DB.alerts.length > 100) DB.alerts = DB.alerts.slice(0, 100);
+        }
+    }
+}
+
+// ==================== 工具函数 ====================
+function getRiskLevel(waterLevel) {
+    if (waterLevel < 0.15) return 'green';
+    if (waterLevel < 0.3) return 'yellow';
+    if (waterLevel < 0.5) return 'orange';
+    return 'red';
+}
+
+function formatTime(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function getRiskText(level) {
+    return { green: '正常', yellow: '关注', orange: '预警', red: '危险' }[level] || '正常';
+}
+
+function getRiskBadge(level) {
+    return `<span class="badge badge-${level || 'green'}">${getRiskText(level)}</span>`;
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+}
+
+function showModal(html) {
+    document.getElementById('modal-content').innerHTML = html;
+    document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ==================== 本地API模拟 ====================
+function apiLogin(username, password) {
+    const user = DB.users.find(u => u.username === username && u.password === password);
+    if (user) {
+        return { code: 200, message: '登录成功', data: { user_id: user.id, username: user.username, role: user.role } };
+    }
+    return { code: 401, message: '用户名或密码错误' };
+}
+
+function apiGetDevices() {
+    return { code: 200, data: DB.devices.map(d => ({ ...d })) };
+}
+
+function apiGetRiskAssess() {
+    const devices = DB.devices.map(d => {
+        const data = DB.flood_data.filter(f => f.device_id === d.device_id);
+        const latest = data[data.length - 1] || { water_level: 0, risk_level: 'green', collect_time: '-' };
+        return { device_id: d.device_id, name: d.name, longitude: d.longitude, latitude: d.latitude, location: d.location, water_level: latest.water_level, risk_level: latest.risk_level, collect_time: latest.collect_time };
+    });
+    const stats = { green: 0, yellow: 0, orange: 0, red: 0 };
+    devices.forEach(d => { if (stats[d.risk_level] !== undefined) stats[d.risk_level]++; });
+    return { code: 200, data: { devices, stats } };
+}
+
+function apiGetAlerts() {
+    return { code: 200, data: DB.alerts.slice(0, 50).map(a => ({ ...a })) };
+}
+
+function apiGetDashboardStats() {
+    const total = DB.devices.length;
+    const online = DB.devices.filter(d => d.status === 'online').length;
+    const alertCount = DB.alerts.filter(a => a.is_read === 0).length;
+    const reportCount = DB.reports.filter(r => r.status === 'pending').length;
+    const assess = apiGetRiskAssess();
+    return { code: 200, data: { total_devices: total, online_devices: online, alert_count: alertCount, report_count: reportCount, risk_stats: assess.data.stats } };
+}
+
+function apiGetPrediction(deviceId) {
+    const data = DB.flood_data.filter(f => f.device_id === deviceId);
+    if (!data.length) return { code: 404, message: '无历史数据' };
+    const recent = data.slice(-6).map(d => d.water_level);
+    let trend = 0;
+    if (recent.length > 1) {
+        let sum = 0;
+        for (let i = 1; i < recent.length; i++) sum += recent[i] - recent[i-1];
+        trend = sum / (recent.length - 1);
+    }
+    const lastValue = recent[recent.length - 1];
+    const now = new Date();
+    const predictions = [];
+    for (let i = 1; i <= 3; i++) {
+        const predValue = Math.max(0, lastValue + trend * i + (Math.random() - 0.5) * 0.06);
+        const predTime = new Date(now.getTime() + i * 3600000);
+        predictions.push({ hour: i, predicted_water_level: Math.round(predValue * 100) / 100, risk_level: getRiskLevel(predValue), predicted_time: formatTime(predTime) });
+    }
+    const history = recent.map((v, i) => {
+        const t = new Date(now.getTime() - (6 - i) * 3600000);
+        return { time: `${String(t.getHours()).padStart(2,'0')}:00`, value: v };
+    });
+    return { code: 200, data: { device_id: deviceId, history, predictions, model: 'LSTM（模拟）' } };
+}
+
+function apiGetHistory(deviceId) {
+    const data = DB.flood_data.filter(f => f.device_id === deviceId).slice(-24).reverse();
+    return { code: 200, data: data.map(d => ({ time: d.collect_time, water_level: d.water_level, risk_level: d.risk_level })) };
+}
+
+function apiExportData(deviceId) {
+    const data = DB.flood_data.filter(f => f.device_id === deviceId).slice(-100).reverse();
+    let csv = '\ufeff设备ID,积水深度(m),风险等级,采集时间\n';
+    const riskMap = { green: '正常', yellow: '关注', orange: '预警', red: '危险' };
+    for (const d of data) csv += `${d.device_id},${d.water_level},${riskMap[d.risk_level]||d.risk_level},${d.collect_time}\n`;
+    return { code: 200, data: { filename: `flood_data_${deviceId}_${formatTime(new Date()).split(' ')[0].replace(/-/g,'')}.csv`, content: csv } };
+}
+
+function apiGetUsers() {
+    return { code: 200, data: DB.users.map(u => ({ ...u })) };
+}
+
+function apiGetLogs() {
+    return { code: 200, data: DB.logs.slice().reverse().map(l => ({ ...l })) };
+}
+
+function apiGetAdminReports() {
+    return { code: 200, data: DB.reports.slice().reverse().map(r => ({ ...r })) };
+}
+
+function apiAddDevice(data) {
+    if (DB.devices.find(d => d.device_id === data.device_id)) return { code: 400, message: '设备ID已存在' };
+    DB.devices.push({ id: DB.nextDeviceId++, device_id: data.device_id, name: data.name, location: data.location, longitude: data.longitude, latitude: data.latitude, status: 'online', install_date: formatTime(new Date()).split(' ')[0], last_online: null });
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '设备管理', detail: `添加设备 ${data.device_id} ${data.name}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '设备添加成功' };
+}
+
+function apiDeleteDevice(deviceId) {
+    DB.devices = DB.devices.filter(d => d.device_id !== deviceId);
+    DB.flood_data = DB.flood_data.filter(f => f.device_id !== deviceId);
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '设备管理', detail: `删除设备 ${deviceId}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '设备删除成功' };
+}
+
+function apiAddUser(data) {
+    if (DB.users.find(u => u.username === data.username)) return { code: 400, message: '用户名已存在' };
+    DB.users.push({ id: DB.nextUserId++, username: data.username, password: data.password, role: data.role, phone: '-', email: '-', created_at: formatTime(new Date()) });
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '用户管理', detail: `添加用户 ${data.username}（${data.role}）`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '用户添加成功' };
+}
+
+function apiDeleteUser(userId) {
+    if (userId === currentUser.user_id) return { code: 400, message: '不能删除自己' };
+    const user = DB.users.find(u => u.id === userId);
+    DB.users = DB.users.filter(u => u.id !== userId);
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '用户管理', detail: `删除用户 ${user ? user.username : userId}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '用户删除成功' };
+}
+
+function apiUpdateReport(reportId, status, adminReply) {
+    const r = DB.reports.find(r => r.id === reportId);
+    if (r) { r.status = status; r.admin_reply = adminReply; }
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '报料处理', detail: `处理报料ID ${reportId}，状态：${status}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '报料处理成功' };
+}
+
+// 公众用户API
+function apiPublicDashboard() {
+    const devices = DB.devices.filter(d => d.status === 'online').map(d => {
+        const data = DB.flood_data.filter(f => f.device_id === d.device_id);
+        const latest = data[data.length - 1] || { water_level: 0, risk_level: 'green', collect_time: '-' };
+        return { device_id: d.device_id, name: d.name, location: d.location, water_level: latest.water_level, risk_level: latest.risk_level, collect_time: latest.collect_time };
+    });
+    const stats = { green: 0, yellow: 0, orange: 0, red: 0 };
+    devices.forEach(d => { if (stats[d.risk_level] !== undefined) stats[d.risk_level]++; });
+    const today = formatTime(new Date()).split(' ')[0];
+    const todayAlerts = DB.alerts.filter(a => a.created_at.startsWith(today)).length;
+    return { code: 200, data: { devices, stats, today_alerts: todayAlerts, total_points: devices.length } };
+}
+
+function apiPublicAlerts() {
+    return { code: 200, data: DB.alerts.slice(0, 20).map(a => {
+        const dev = DB.devices.find(d => d.device_id === a.device_id);
+        return { ...a, device_name: dev ? dev.name : a.device_id, location: dev ? dev.location : '-' };
+    })};
+}
+
+function apiSubmitReport(data) {
+    DB.reports.push({ id: DB.nextReportId++, user_id: currentUser.user_id, reporter_name: data.reporter_name, reporter_phone: data.reporter_phone, location: data.location, water_depth: data.water_depth, description: data.description, status: 'pending', admin_reply: '', created_at: formatTime(new Date()) });
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '公众上报', detail: `上报积水：${data.location}（${data.water_depth}）`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '上报成功！工作人员将尽快核实处理' };
+}
+
+function apiMyReports() {
+    return { code: 200, data: DB.reports.filter(r => r.user_id === currentUser.user_id).slice().reverse().map(r => ({ ...r })) };
+}
+
+function apiTravel() {
+    const assess = apiGetRiskAssess();
+    const devices = assess.data.devices;
+    const safe = devices.filter(d => d.risk_level === 'green');
+    const caution = devices.filter(d => d.risk_level === 'yellow');
+    const danger = devices.filter(d => d.risk_level === 'orange' || d.risk_level === 'red');
+    const suggestions = [];
+    if (danger.length) suggestions.push(`【避开】${danger.map(a => a.name.replace('监测点','')).join('、')}区域积水严重，请绕行`);
+    if (caution.length) suggestions.push(`【注意】${caution.map(a => a.name.replace('监测点','')).join('、')}区域有轻微积水，缓慢通行`);
+    if (safe.length) suggestions.push(`【畅通】${safe.map(a => a.name.replace('监测点','')).join('、')}区域道路正常`);
+    if (!danger.length && !caution.length) suggestions.push('目前全市道路积水情况良好，可正常出行');
+    return { code: 200, data: { safe_areas: safe, caution_areas: caution, danger_areas: danger, suggestions } };
+}
+
+function apiGetProfile() {
+    const user = DB.users.find(u => u.id === currentUser.user_id);
+    if (!user) return { code: 404, message: '用户不存在' };
+    const reportCount = DB.reports.filter(r => r.user_id === currentUser.user_id).length;
+    return { code: 200, data: { id: user.id, username: user.username, role: user.role, phone: user.phone || '', email: user.email || '', created_at: user.created_at, report_count: reportCount } };
+}
+
+function apiUpdateProfile(phone, email) {
+    const user = DB.users.find(u => u.id === currentUser.user_id);
+    if (user) { user.phone = phone; user.email = email; }
+    return { code: 200, message: '信息更新成功' };
+}
+
+function apiChangePassword(oldPwd, newPwd) {
+    const user = DB.users.find(u => u.id === currentUser.user_id);
+    if (!user || user.password !== oldPwd) return { code: 400, message: '旧密码错误' };
+    user.password = newPwd;
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '修改密码', detail: '用户修改了登录密码', ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '密码修改成功' };
+}
+
+// ==================== 登录 ====================
+let currentUser = null;
+let loginRole = 'admin';
+
+function switchLoginRole(role) {
+    loginRole = role;
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.role-tab.' + role).classList.add('active');
+    if (role === 'admin') {
+        document.getElementById('login-username').value = 'admin';
+        document.getElementById('login-password').value = 'admin123';
+    } else {
+        document.getElementById('login-username').value = 'user';
+        document.getElementById('login-password').value = 'user123';
+    }
+}
+
+function doLogin() {
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    const res = apiLogin(username, password);
+    if (res.code === 200) {
+        currentUser = res.data;
+        document.getElementById('login-page').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        initUI(res.data);
+        showToast('登录成功，欢迎 ' + res.data.username);
+    } else {
+        showToast(res.message);
+    }
+}
+
+function doLogout() {
+    currentUser = null;
+    document.getElementById('login-page').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+}
+
+// ==================== 初始化界面 ====================
+function initUI(user) {
+    const isAdmin = user.role === 'admin';
+    const sidebar = document.getElementById('sidebar');
+    const badge = document.getElementById('role-badge');
+    if (isAdmin) {
+        sidebar.className = 'sidebar admin-sidebar';
+        badge.className = 'role-badge admin';
+        badge.textContent = '管理员模式';
+        document.getElementById('current-user').textContent = '当前用户：' + user.username + '（管理员）';
+        document.getElementById('nav-menu').innerHTML = `
+            <a onclick="showAdminPage('dashboard')" class="active" id="nav-dashboard">系统概览</a>
+            <a onclick="showAdminPage('devices')" id="nav-devices">设备管理</a>
+            <a onclick="showAdminPage('map')" id="nav-map">地图监测</a>
+            <a onclick="showAdminPage('prediction')" id="nav-prediction">AI积水预测</a>
+            <a onclick="showAdminPage('alerts')" id="nav-alerts">预警记录</a>
+            <a onclick="showAdminPage('history')" id="nav-history">历史数据</a>
+            <a onclick="showAdminPage('reports')" id="nav-reports">公众报料管理</a>
+            <a onclick="showAdminPage('admin')" id="nav-admin">系统管理</a>`;
+    } else {
+        sidebar.className = 'sidebar user-sidebar';
+        badge.className = 'role-badge user';
+        badge.textContent = '用户中心';
+        document.getElementById('current-user').textContent = '当前用户：' + user.username + '（用户）';
+        document.getElementById('nav-menu').innerHTML = `
+            <a onclick="showUserPage('realtime')" class="active" id="nav-realtime">实时数据</a>
+            <a onclick="showUserPage('alerts')" id="nav-alerts">预警信息</a>
+            <a onclick="showUserPage('report')" id="nav-report">公众上报</a>
+            <a onclick="showUserPage('travel')" id="nav-travel">出行辅助</a>
+            <a onclick="showUserPage('profile')" id="nav-profile">个人信息中心</a>`;
+    }
+    if (isAdmin) showAdminPage('dashboard'); else showUserPage('realtime');
+}
+
+function switchNavActive(navId) {
+    document.querySelectorAll('#nav-menu a').forEach(a => a.classList.remove('active'));
+    const el = document.getElementById(navId);
+    if (el) el.classList.add('active');
+}
+
+function showAdminPage(name) {
+    switchNavActive('nav-' + name);
+    const content = document.getElementById('main-content');
+    const loaders = { dashboard: loadAdminDashboard, devices: loadAdminDevices, map: loadAdminMap, prediction: loadAdminPrediction, alerts: loadAdminAlerts, history: loadAdminHistory, reports: loadAdminReports, admin: loadAdminSystem };
+    content.innerHTML = getAdminPageHTML(name);
+    if (loaders[name]) loaders[name]();
+}
+
+function showUserPage(name) {
+    switchNavActive('nav-' + name);
+    const content = document.getElementById('main-content');
+    const loaders = { realtime: loadUserRealtime, alerts: loadUserAlerts, report: loadUserReport, travel: loadUserTravel, profile: loadUserProfile };
+    content.innerHTML = getUserPageHTML(name);
+    if (loaders[name]) loaders[name]();
+}
+
+// ==================== 管理员页面 HTML ====================
+function getAdminPageHTML(name) {
+    switch(name) {
+        case 'dashboard': return `
+            <div class="page-header"><h1>系统概览</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDashboard()">刷新数据</button></div>
+            <div class="admin-banner"><span>管理员模式</span> | 系统全部功能，可管理设备、用户和系统配置</div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="icon" style="background:#e3f2fd;color:#1976d2;">📊</div><div class="value" id="stat-devices">-</div><div class="label">设备总数</div></div>
+                <div class="stat-card"><div class="icon" style="background:#e8f5e9;color:#388e3c;">📡</div><div class="value" id="stat-online">-</div><div class="label">在线设备</div></div>
+                <div class="stat-card"><div class="icon" style="background:#fff3e0;color:#f57c00;">⚠️</div><div class="value" id="stat-alerts">-</div><div class="label">未读预警</div></div>
+                <div class="stat-card"><div class="icon" style="background:#fce4ec;color:#c62828;">📝</div><div class="value" id="stat-reports">-</div><div class="label">待处理报料</div></div>
+            </div>
+            <div class="info-card"><h3>风险等级分布</h3><div style="display:flex;gap:16px;">
+                <div style="flex:1;text-align:center;padding:16px;background:#e8f5e9;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#2e7d32;" id="risk-green">0</div><div style="font-size:13px;color:#666;">正常</div></div>
+                <div style="flex:1;text-align:center;padding:16px;background:#fff9c4;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#f57f17;" id="risk-yellow">0</div><div style="font-size:13px;color:#666;">关注</div></div>
+                <div style="flex:1;text-align:center;padding:16px;background:#ffe0b2;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#e65100;" id="risk-orange">0</div><div style="font-size:13px;color:#666;">预警</div></div>
+                <div style="flex:1;text-align:center;padding:16px;background:#ffcdd2;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#c62828;" id="risk-red">0</div><div style="font-size:13px;color:#666;">危险</div></div>
+            </div></div>
+            <div class="info-card"><h3>各监测点最新积水数据</h3><div class="data-table" style="box-shadow:none;">
+                <table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>采集时间</th></tr></thead>
+                <tbody id="dashboard-device-list"></tbody></table></div></div>`;
+        case 'devices': return `
+            <div class="page-header"><h1>设备管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddDeviceModal()">+ 添加设备</button>
+            <button class="btn btn-primary btn-sm" onclick="loadAdminDevices()">刷新</button></div></div>
+            <div class="admin-banner"><span>管理员权限</span> | 添加和删除监测设备</div>
+            <div class="data-table"><table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>经度</th><th>纬度</th><th>状态</th><th>安装日期</th><th>操作</th></tr></thead>
+            <tbody id="device-list"></tbody></table></div>`;
+        case 'map': return `
+            <div class="page-header"><h1>地图监测</h1><button class="btn btn-primary btn-sm" onclick="loadAdminMap()">刷新</button></div>
+            <div class="info-card"><div id="map-container" style="width:100%;height:500px;border-radius:8px;"></div>
+            <p style="margin-top:12px;font-size:12px;color:#999;">提示：颜色对应风险等级（绿/黄/橙/红）</p></div>`;
+        case 'prediction': return `
+            <div class="page-header"><h1>AI积水预测</h1></div>
+            <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择监测设备：</label>
+            <select id="prediction-device"></select>
+            <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="runPrediction()">执行AI预测</button></div>
+            <div class="prediction-result" id="prediction-result" style="display:none;">
+                <h3 style="color:#333;margin-bottom:16px;">预测结果（基于LSTM模型）</h3>
+                <div id="prediction-chart" class="prediction-chart"></div>
+                <div id="prediction-details" style="margin-top:16px;"></div></div>`;
+        case 'alerts': return `
+            <div class="page-header"><h1>预警记录</h1><button class="btn btn-primary btn-sm" onclick="loadAdminAlerts()">刷新</button></div>
+            <div id="alerts-list"></div>`;
+        case 'history': return `
+            <div class="page-header"><h1>历史数据统计</h1></div>
+            <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择设备：</label>
+            <select id="history-device"></select>
+            <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="loadHistory()">查询</button>
+            <button class="btn btn-sm" style="margin-left:8px;background:#4caf50;color:#fff;" onclick="exportData()">导出Excel</button></div>
+            <div class="info-card"><h3 style="color:#333;margin-bottom:16px;">积水深度变化趋势</h3><div id="history-chart" class="prediction-chart"></div></div>
+            <div class="data-table" style="margin-top:16px;"><table><thead><tr><th>采集时间</th><th>积水深度(m)</th><th>风险等级</th></tr></thead>
+            <tbody id="history-list"></tbody></table></div>`;
+        case 'reports': return `
+            <div class="page-header"><h1>公众报料管理</h1><button class="btn btn-primary btn-sm" onclick="loadAdminReports()">刷新</button></div>
+            <div class="admin-banner"><span>管理员</span> | 处理市民上报的积水信息</div>
+            <div id="reports-list"></div>`;
+        case 'admin': return `
+            <div class="page-header"><h1>系统管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddUserModal()">+ 添加用户</button>
+            <button class="btn btn-primary btn-sm" onclick="loadAdminSystem()">刷新</button></div></div>
+            <div class="admin-banner"><span>管理员控制台</span> | 用户管理、操作日志</div>
+            <h3 style="color:#333;margin-bottom:12px;">用户管理</h3>
+            <div class="data-table" style="margin-bottom:24px;"><table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>手机</th><th>邮箱</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody id="user-list"></tbody></table></div>
+            <h3 style="color:#333;margin-bottom:12px;">系统操作日志</h3>
+            <div class="data-table"><table><thead><tr><th>操作人</th><th>操作</th><th>详情</th><th>IP地址</th><th>时间</th></tr></thead>
+            <tbody id="log-list"></tbody></table></div>`;
+        default: return '<p>页面不存在</p>';
+    }
+}
+
+// ==================== 用户页面 HTML ====================
+function getUserPageHTML(name) {
+    switch(name) {
+        case 'realtime': return `
+            <div class="page-header"><h1>实时数据查看</h1><button class="btn btn-primary btn-sm" onclick="loadUserRealtime()">刷新</button></div>
+            <div class="user-banner"><span>实时监测</span> | 宜春市各监测点实时积水数据（每30秒自动更新）</div>
+            <div class="alert-banner" id="realtime-alert-banner"></div>
+            <div class="stats-grid" id="user-stats"></div>
+            <div class="info-card"><h3>各监测点实时积水情况</h3><div class="data-table" style="box-shadow:none;">
+                <table><thead><tr><th>监测点</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>更新时间</th></tr></thead>
+                <tbody id="user-realtime-list"></tbody></table></div></div>`;
+        case 'alerts': return `
+            <div class="page-header"><h1>预警信息接收</h1><button class="btn btn-primary btn-sm" onclick="loadUserAlerts()">刷新</button></div>
+            <div class="user-banner"><span>预警提醒</span> | 接收最新的内涝预警信息，请注意出行安全</div>
+            <div class="alert-banner" id="alerts-warning-banner"></div>
+            <div id="user-alerts-list"></div>`;
+        case 'report': return `
+            <div class="page-header"><h1>公众上报</h1></div>
+            <div class="user-banner"><span>积水上报</span> | 发现积水？立即上报，帮助其他市民安全出行</div>
+            <div class="info-card"><h3>提交积水上报</h3><div style="display:grid;gap:12px;">
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">您的姓名</label><input type="text" id="report-name" placeholder="如：张三" style="width:100%;"></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">联系电话</label><input type="text" id="report-phone" placeholder="如：138XXXX" style="width:100%;"></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">积水位置</label><input type="text" id="report-location" placeholder="如：袁州区秀江中路秀江大桥下" style="width:100%;"></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">积水程度</label><select id="report-depth" style="width:100%;"><option value="轻微">轻微（可通行）</option><option value="中等">中等（小心通行）</option><option value="严重">严重（不可通行）</option></select></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">详细描述</label><textarea id="report-desc" placeholder="描述积水情况..." style="width:100%;"></textarea></div>
+                <div><button class="btn btn-primary" onclick="submitReport()">提交上报</button></div></div></div>
+            <div class="info-card"><h3>我的上报记录</h3><div id="my-reports-list"></div></div>`;
+        case 'travel': return `
+            <div class="page-header"><h1>出行辅助</h1><button class="btn btn-primary btn-sm" onclick="loadUserTravel()">刷新</button></div>
+            <div class="user-banner"><span>出行建议</span> | 根据实时积水数据为您提供出行参考</div>
+            <div class="info-card"><h3>出行建议</h3><div id="travel-suggestions"></div></div>
+            <div class="info-card"><h3>区域积水情况</h3><div id="travel-areas"></div></div>`;
+        case 'profile': return `
+            <div class="page-header"><h1>个人信息中心</h1></div>
+            <div class="user-banner"><span>个人中心</span> | 管理您的账号信息</div>
+            <div class="info-card"><h3>基本资料</h3>
+                <div class="profile-row"><div class="label">用户名</div><div class="value" id="profile-username">-</div></div>
+                <div class="profile-row"><div class="label">角色</div><div class="value" id="profile-role">-</div></div>
+                <div class="profile-row"><div class="label">手机号</div><div class="value"><input type="text" id="profile-phone" style="width:200px;"></div></div>
+                <div class="profile-row"><div class="label">邮箱</div><div class="value"><input type="text" id="profile-email" style="width:250px;"></div></div>
+                <div class="profile-row"><div class="label">注册时间</div><div class="value" id="profile-created">-</div></div>
+                <div class="profile-row"><div class="label">我的上报</div><div class="value" id="profile-reports">-</div></div>
+                <div style="margin-top:16px;"><button class="btn btn-primary" onclick="updateProfile()">保存修改</button></div></div>
+            <div class="info-card"><h3>修改密码</h3><div style="display:grid;gap:12px;max-width:400px;">
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">旧密码</label><input type="password" id="old-pwd" style="width:100%;"></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">新密码（至少6位）</label><input type="password" id="new-pwd" style="width:100%;"></div>
+                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">确认新密码</label><input type="password" id="confirm-pwd" style="width:100%;"></div>
+                <div><button class="btn btn-primary" onclick="changePassword()">修改密码</button></div></div></div>`;
+        default: return '<p>页面不存在</p>';
+    }
+}
+
+// ==================== 管理员页面加载 ====================
+function loadAdminDashboard() {
+    const res = apiGetDashboardStats();
+    if (res.code === 200) {
+        const d = res.data;
+        document.getElementById('stat-devices').textContent = d.total_devices;
+        document.getElementById('stat-online').textContent = d.online_devices;
+        document.getElementById('stat-alerts').textContent = d.alert_count;
+        document.getElementById('stat-reports').textContent = d.report_count || 0;
+        document.getElementById('risk-green').textContent = d.risk_stats.green || 0;
+        document.getElementById('risk-yellow').textContent = d.risk_stats.yellow || 0;
+        document.getElementById('risk-orange').textContent = d.risk_stats.orange || 0;
+        document.getElementById('risk-red').textContent = d.risk_stats.red || 0;
+    }
+    const res2 = apiGetRiskAssess();
+    if (res2.code === 200) {
+        document.getElementById('dashboard-device-list').innerHTML = res2.data.devices.map(d => `
+            <tr><td>${d.device_id}</td><td>${d.name}</td><td>${d.location||'-'}</td>
+            <td>${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td><td>${d.collect_time||'-'}</td></tr>`).join('');
+    }
+}
+
+function loadAdminDevices() {
+    const res = apiGetDevices();
+    if (res.code === 200) {
+        document.getElementById('device-list').innerHTML = res.data.map(d => `
+            <tr><td>${d.device_id}</td><td>${d.name}</td><td>${d.location||'-'}</td>
+            <td>${d.longitude||'-'}</td><td>${d.latitude||'-'}</td>
+            <td><span class="status-dot status-${d.status}"></span>${d.status==='online'?'在线':'离线'}</td>
+            <td>${d.install_date||'-'}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.device_id}')">删除</button></td></tr>`).join('');
+    }
+}
+
+function showAddDeviceModal() {
+    showModal(`<h3>添加监测设备</h3>
+        <label>设备ID</label><input type="text" id="new-device-id" placeholder="如 DEV007">
+        <label>设备名称</label><input type="text" id="new-device-name" placeholder="如 秀江公园监测点">
+        <label>安装位置</label><input type="text" id="new-device-location" placeholder="如 宜春市袁州区xxx路">
+        <label>经度</label><input type="number" id="new-device-lng" step="0.0001" value="114.3800">
+        <label>纬度</label><input type="number" id="new-device-lat" step="0.0001" value="27.8000">
+        <div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitAddDevice()">确认添加</button></div>`);
+}
+function submitAddDevice() {
+    const data = { device_id: document.getElementById('new-device-id').value, name: document.getElementById('new-device-name').value, location: document.getElementById('new-device-location').value, longitude: parseFloat(document.getElementById('new-device-lng').value), latitude: parseFloat(document.getElementById('new-device-lat').value) };
+    if (!data.device_id || !data.name) { showToast('设备ID和名称不能为空'); return; }
+    const res = apiAddDevice(data);
+    if (res.code === 200) { closeModal(); loadAdminDevices(); showToast('设备添加成功！'); }
+}
+function deleteDevice(id) {
+    if (!confirm('确定删除设备 ' + id + '？')) return;
+    const res = apiDeleteDevice(id);
+    if (res.code === 200) { loadAdminDevices(); showToast('设备已删除'); }
+}
+
+function loadAdminMap() {
+    const res = apiGetRiskAssess();
+    if (res.code === 200) {
+        const devices = res.data.devices;
+        const colors = { green: '#4caf50', yellow: '#ffeb3b', orange: '#ff9800', red: '#f44336' };
+        const minLng = Math.min(...devices.map(d => d.longitude));
+        const maxLng = Math.max(...devices.map(d => d.longitude));
+        const minLat = Math.min(...devices.map(d => d.latitude));
+        const maxLat = Math.max(...devices.map(d => d.latitude));
+        let dots = '';
+        devices.forEach((d, i) => {
+            const x = ((d.longitude - minLng) / (maxLng - minLng + 0.01)) * 80 + 10;
+            const y = 90 - ((d.latitude - minLat) / (maxLat - minLat + 0.01)) * 80 - 5;
+            dots += `<g style="cursor:pointer;" onclick="showDeviceInfo('${d.name}',${d.water_level},'${d.risk_level}')">
+                <circle cx="${x}%" cy="${y}%" r="12" fill="${colors[d.risk_level]}" opacity="0.8" stroke="#fff" stroke-width="2"/>
+                <text x="${x}%" y="${y}%" text-anchor="middle" dy="4" fill="#fff" font-size="10" font-weight="bold">${i+1}</text>
+                <text x="${x}%" y="${y}%" text-anchor="middle" dy="25" fill="#333" font-size="11">${d.name}</text>
+                <text x="${x}%" y="${y}%" text-anchor="middle" dy="38" fill="#666" font-size="10">${d.water_level}m</text></g>`;
+        });
+        document.getElementById('map-container').innerHTML = `
+            <svg width="100%" height="100%" style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:8px;">
+                <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e0e0e0" stroke-width="0.5"/></pattern></defs>
+                <rect width="100%" height="100%" fill="url(#grid)"/>
+                <text x="50%" y="30" text-anchor="middle" font-size="16" fill="#666" font-weight="bold">宜春市内涝监测点分布图</text>${dots}</svg>`;
+    }
+}
+function showDeviceInfo(name, level, risk) { showToast(name + '：积水 ' + level + 'm，' + getRiskText(risk)); }
+
+function loadAdminPrediction() {
+    if (!document.getElementById('prediction-device')) return;
+    if (!document.getElementById('prediction-device').options.length) {
+        const res = apiGetDevices();
+        if (res.code === 200) {
+            document.getElementById('prediction-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join('');
+        }
+    }
+}
+function runPrediction() {
+    const deviceId = document.getElementById('prediction-device').value;
+    if (!deviceId) { showToast('请选择设备'); return; }
+    showToast('正在执行AI预测...');
+    setTimeout(() => {
+        const res = apiGetPrediction(deviceId);
+        if (res.code === 200) {
+            document.getElementById('prediction-result').style.display = 'block';
+            drawPredictionChart(res.data);
+        }
+    }, 800);
+}
+function drawPredictionChart(data) {
+    const history = data.history;
+    const predictions = data.predictions;
+    const allValues = [...history.map(h => h.value), ...predictions.map(p => p.predicted_water_level)];
+    const maxVal = Math.max(...allValues) * 1.2;
+    const width = 600, height = 250, padding = 40;
+    const points = allValues.length;
+    const stepX = (width - padding * 2) / (points - 1);
+    let historyPath = '';
+    history.forEach((h, i) => {
+        const x = padding + i * stepX;
+        const y = height - padding - ((h.value) / maxVal) * (height - padding * 2);
+        historyPath += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+    });
+    const lastX = padding + (history.length-1) * stepX;
+    const lastY = height - padding - (history[history.length-1].value / maxVal) * (height - padding * 2);
+    let predictPath = `M${lastX},${lastY} `;
+    predictions.forEach((p, i) => {
+        const x = padding + (history.length + i) * stepX;
+        const y = height - padding - (p.predicted_water_level / maxVal) * (height - padding * 2);
+        predictPath += `L${x},${y} `;
+    });
+    document.getElementById('prediction-chart').innerHTML = `
+        <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;">
+            <text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">积水深度预测趋势图</text>
+            <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/>
+            <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/>
+            <path d="${historyPath}" fill="none" stroke="#2196f3" stroke-width="2"/>
+            ${history.map((h,i) => { const x=padding+i*stepX; const y=height-padding-(h.value/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="#2196f3"/>`; }).join('')}
+            <path d="${predictPath}" fill="none" stroke="#ff9800" stroke-width="2" stroke-dasharray="5,3"/>
+            ${predictions.map((p,i) => { const x=padding+(history.length+i)*stepX; const y=height-padding-(p.predicted_water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="4" fill="${p.risk_level==='red'?'#f44336':p.risk_level==='orange'?'#ff9800':'#4caf50'}"/>`; }).join('')}
+        </svg>`;
+    document.getElementById('prediction-details').innerHTML = predictions.map(p => `
+        <div style="display:inline-block;padding:12px 20px;margin-right:12px;background:#f5f7fa;border-radius:8px;">
+            <div style="font-size:12px;color:#999;">未来 ${p.hour} 小时</div>
+            <div style="font-size:20px;font-weight:bold;color:${p.risk_level==='red'?'#c62828':p.risk_level==='orange'?'#e65100':'#2e7d32'};">${p.predicted_water_level}m</div>
+            ${getRiskBadge(p.risk_level)}</div>`).join('');
+}
+
+function loadAdminAlerts() {
+    const res = apiGetAlerts();
+    if (res.code === 200) {
+        const div = document.getElementById('alerts-list');
+        div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无预警记录</div>' :
+            res.data.map(a => `<div class="alert-item"><div class="left">
+                <div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div>
+                <div class="msg">${a.message}</div></div><div class="time">${a.created_at||''}</div></div>`).join('');
+    }
+}
+
+function loadAdminHistory() {
+    if (!document.getElementById('history-device')) return;
+    if (!document.getElementById('history-device').options.length) {
+        const res = apiGetDevices();
+        if (res.code === 200) {
+            document.getElementById('history-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join('');
+        }
+    }
+    loadHistory();
+}
+function loadHistory() {
+    const deviceId = document.getElementById('history-device')?.value;
+    if (!deviceId) return;
+    const res = apiGetHistory(deviceId);
+    if (res.code === 200) {
+        const data = res.data.reverse();
+        drawHistoryChart(data);
+        document.getElementById('history-list').innerHTML = data.map(d => `
+            <tr><td>${d.time}</td><td>${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td></tr>`).join('');
+    }
+}
+function drawHistoryChart(data) {
+    const chartDiv = document.getElementById('history-chart');
+    if (!data.length) { chartDiv.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无数据</p>'; return; }
+    const values = data.map(d => d.water_level);
+    const maxVal = Math.max(...values) * 1.2;
+    const width = 600, height = 250, padding = 40;
+    const stepX = (width - padding * 2) / Math.max(data.length - 1, 1);
+    let path = '';
+    data.forEach((d, i) => {
+        const x = padding + i * stepX;
+        const y = height - padding - (d.water_level / maxVal) * (height - padding * 2);
+        path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+    });
+    chartDiv.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;">
+        <text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">24小时积水深度变化</text>
+        <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/>
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/>
+        <path d="${path}" fill="none" stroke="#2196f3" stroke-width="2"/>
+        ${data.map((d,i) => { const x=padding+i*stepX; const y=height-padding-(d.water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#ffeb3b':'#4caf50'}"/>`; }).join('')}</svg>`;
+}
+function exportData() {
+    const deviceId = document.getElementById('history-device')?.value;
+    if (!deviceId) { showToast('请选择设备'); return; }
+    const res = apiExportData(deviceId);
+    if (res.code === 200) {
+        const blob = new Blob([res.data.content], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = res.data.filename; a.click();
+        URL.revokeObjectURL(url); showToast('导出成功！');
+    }
+}
+
+function loadAdminReports() {
+    const res = apiGetAdminReports();
+    if (res.code === 200) {
+        const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' };
+        const div = document.getElementById('reports-list');
+        div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无公众报料</div>' :
+            res.data.map(r => `<div class="report-card ${r.status}">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                    <div><strong>${r.reporter_name}</strong> <span style="color:#999;font-size:12px;">${r.reporter_phone||''}</span>
+                    <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}" style="margin-left:8px;">${statusMap[r.status]||r.status}</span></div>
+                    <div style="color:#999;font-size:12px;">${r.created_at||''}</div></div>
+                <div style="margin-top:8px;font-size:14px;color:#333;"><strong>位置：</strong>${r.location} <strong>程度：</strong>${r.water_depth}</div>
+                <div style="margin-top:4px;font-size:13px;color:#666;">${r.description}</div>
+                ${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>回复：</strong>${r.admin_reply}</div>` : ''}
+                <div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="showReplyModal(${r.id})">处理</button></div></div>`).join('');
+    }
+}
+function showReplyModal(id) {
+    showModal(`<h3>处理报料</h3>
+        <label>处理状态</label><select id="reply-status" style="width:100%;"><option value="verified">已核实</option><option value="resolved">已解决</option></select>
+        <label>回复内容</label><textarea id="reply-content" placeholder="回复市民..." style="width:100%;"></textarea>
+        <div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitReply(${id})">确认</button></div>`);
+}
+function submitReply(id) {
+    const res = apiUpdateReport(id, document.getElementById('reply-status').value, document.getElementById('reply-content').value);
+    if (res.code === 200) { closeModal(); loadAdminReports(); showToast('报料处理成功'); }
+}
+
+function loadAdminSystem() {
+    const usersRes = apiGetUsers();
+    const logsRes = apiGetLogs();
+    if (usersRes.code === 200) {
+        document.getElementById('user-list').innerHTML = usersRes.data.map(u => `
+            <tr><td>${u.id}</td><td>${u.username}</td>
+            <td><span class="badge badge-${u.role==='admin'?'orange':'green'}">${u.role==='admin'?'管理员':'用户'}</span></td>
+            <td>${u.phone||'-'}</td><td>${u.email||'-'}</td><td>${u.created_at||'-'}</td>
+            <td>${u.username !== currentUser.username ? `<button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">删除</button>` : '<span style="color:#ccc;font-size:12px;">当前用户</span>'}</td></tr>`).join('');
+    }
+    if (logsRes.code === 200) {
+        document.getElementById('log-list').innerHTML = logsRes.data.map(l => `
+            <tr><td>${l.username||'系统'}</td><td>${l.action||'-'}</td><td>${l.detail||'-'}</td>
+            <td>${l.ip_address||'-'}</td><td>${l.created_at||'-'}</td></tr>`).join('');
+    }
+}
+function showAddUserModal() {
+    showModal(`<h3>添加用户</h3>
+        <label>用户名</label><input type="text" id="new-user-username" placeholder="如 newuser">
+        <label>密码</label><input type="text" id="new-user-password" placeholder="如 123456">
+        <label>角色</label><select id="new-user-role" style="width:100%;"><option value="user">用户</option><option value="admin">管理员</option></select>
+        <div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitAddUser()">确认添加</button></div>`);
+}
+function submitAddUser() {
+    const data = { username: document.getElementById('new-user-username').value, password: document.getElementById('new-user-password').value, role: document.getElementById('new-user-role').value };
+    if (!data.username || !data.password) { showToast('用户名和密码不能为空'); return; }
+    const res = apiAddUser(data);
+    if (res.code === 200) { closeModal(); loadAdminSystem(); showToast('用户添加成功！'); }
+}
+function deleteUser(id) {
+    if (!confirm('确定删除该用户？')) return;
+    const res = apiDeleteUser(id);
+    if (res.code === 200) { loadAdminSystem(); showToast('用户已删除'); }
+}
+
+// ==================== 用户端页面加载 ====================
+function loadUserRealtime() {
+    const res = apiPublicDashboard();
+    if (res.code === 200) {
+        const d = res.data;
+        const stats = d.stats;
+        document.getElementById('user-stats').innerHTML = `
+            <div class="stat-card"><div class="icon" style="background:#e8f5e9;color:#388e3c;">✅</div><div class="value">${stats.green||0}</div><div class="label">正常路段</div></div>
+            <div class="stat-card"><div class="icon" style="background:#fff9c4;color:#f57f17;">⚠️</div><div class="value">${stats.yellow||0}</div><div class="label">关注路段</div></div>
+            <div class="stat-card"><div class="icon" style="background:#ffe0b2;color:#e65100;">🚧</div><div class="value">${stats.orange||0}</div><div class="label">预警路段</div></div>
+            <div class="stat-card"><div class="icon" style="background:#ffcdd2;color:#c62828;">⛔</div><div class="value">${stats.red||0}</div><div class="label">危险路段</div></div>`;
+        if (stats.orange > 0 || stats.red > 0) {
+            const banner = document.getElementById('realtime-alert-banner');
+            banner.className = 'alert-banner show';
+            banner.innerHTML = `<strong>⚠️ 出行提醒</strong> | 当前有 ${stats.orange||0} 个预警路段、${stats.red||0} 个危险路段，请注意避开积水区域！`;
+        }
+        document.getElementById('user-realtime-list').innerHTML = d.devices.map(dev => `
+            <tr><td>${dev.name}</td><td>${dev.location||'-'}</td><td>${dev.water_level}m</td>
+            <td>${getRiskBadge(dev.risk_level)}</td><td>${dev.collect_time||'-'}</td></tr>`).join('');
+    }
+}
+
+function loadUserAlerts() {
+    const res = apiPublicAlerts();
+    if (res.code === 200) {
+        const div = document.getElementById('user-alerts-list');
+        if (res.data.length === 0) {
+            div.innerHTML = '<div style="text-align:center;padding:40px;color:#999;background:#fff;border-radius:8px;">暂无预警信息，一切正常 ✅</div>';
+        } else {
+            const dangerCount = res.data.filter(a => a.risk_level === 'red').length;
+            const warnCount = res.data.filter(a => a.risk_level === 'orange').length;
+            if (dangerCount > 0 || warnCount > 0) {
+                const banner = document.getElementById('alerts-warning-banner');
+                banner.className = 'alert-banner show';
+                banner.innerHTML = `<strong>🚨 预警提醒</strong> | 最近有 ${warnCount} 条预警、${dangerCount} 条危险信息，请注意安全！`;
+            }
+            div.innerHTML = res.data.map(a => `
+                <div class="alert-item"><div class="left">
+                    <div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div>
+                    <div class="msg">${a.message}</div>
+                    ${a.location ? `<div style="font-size:12px;color:#999;margin-top:4px;">📍 ${a.location}</div>` : ''}
+                </div><div class="time">${a.created_at||''}</div></div>`).join('');
+        }
+    }
+}
+
+function loadUserReport() { loadMyReports(); }
+function submitReport() {
+    const data = { reporter_name: document.getElementById('report-name').value, reporter_phone: document.getElementById('report-phone').value, location: document.getElementById('report-location').value, water_depth: document.getElementById('report-depth').value, description: document.getElementById('report-desc').value };
+    if (!data.location || !data.description) { showToast('请填写积水位置和描述'); return; }
+    const res = apiSubmitReport(data);
+    if (res.code === 200) {
+        showToast('上报成功！工作人员将尽快核实处理');
+        document.getElementById('report-name').value = '';
+        document.getElementById('report-phone').value = '';
+        document.getElementById('report-location').value = '';
+        document.getElementById('report-desc').value = '';
+        loadMyReports();
+    }
+}
+function loadMyReports() {
+    const res = apiMyReports();
+    if (res.code === 200) {
+        const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' };
+        const div = document.getElementById('my-reports-list');
+        if (res.data.length === 0) {
+            div.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">您还没有上报记录</div>';
+        } else {
+            div.innerHTML = res.data.map(r => `
+                <div class="report-card ${r.status}">
+                    <div style="display:flex;justify-content:space-between;"><strong>${r.location}</strong>
+                    <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}">${statusMap[r.status]||r.status}</span></div>
+                    <div style="margin-top:6px;font-size:13px;color:#666;">${r.description}</div>
+                    <div style="margin-top:4px;font-size:12px;color:#999;">程度：${r.water_depth} | 时间：${r.created_at}</div>
+                    ${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>官方回复：</strong>${r.admin_reply}</div>` : ''}
+                </div>`).join('');
+        }
+    }
+}
+
+function loadUserTravel() {
+    const res = apiTravel();
+    if (res.code === 200) {
+        const d = res.data;
+        const sugDiv = document.getElementById('travel-suggestions');
+        if (d.suggestions.length === 0) {
+            sugDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">暂无建议</div>';
+        } else {
+            sugDiv.innerHTML = d.suggestions.map(s => {
+                let cls = 'suggestion-safe';
+                if (s.startsWith('【避开】')) cls = 'suggestion-danger';
+                else if (s.startsWith('【注意】')) cls = 'suggestion-caution';
+                return `<div class="suggestion-box ${cls}">${s}</div>`;
+            }).join('');
+        }
+        const areasDiv = document.getElementById('travel-areas');
+        let html = '';
+        if (d.danger_areas.length > 0) {
+            html += '<h4 style="color:#c62828;margin-bottom:8px;">⛔ 危险区域（请避开）</h4>';
+            html += d.danger_areas.map(a => `<div style="padding:8px;background:#ffebee;border-radius:6px;margin-bottom:6px;"><strong>${a.name}</strong> - 积水 ${a.water_level}m ${getRiskBadge(a.risk_level)}</div>`).join('');
+        }
+        if (d.caution_areas.length > 0) {
+            html += '<h4 style="color:#f57f17;margin:12px 0 8px;">⚠️ 注意区域（小心通行）</h4>';
+            html += d.caution_areas.map(a => `<div style="padding:8px;background:#fff9c4;border-radius:6px;margin-bottom:6px;"><strong>${a.name}</strong> - 积水 ${a.water_level}m ${getRiskBadge(a.risk_level)}</div>`).join('');
+        }
+        if (d.safe_areas.length > 0) {
+            html += '<h4 style="color:#2e7d32;margin:12px 0 8px;">✅ 安全区域（可正常通行）</h4>';
+            html += d.safe_areas.map(a => `<div style="padding:8px;background:#e8f5e9;border-radius:6px;margin-bottom:6px;"><strong>${a.name}</strong> - ${a.water_level}m ${getRiskBadge(a.risk_level)}</div>`).join('');
+        }
+        areasDiv.innerHTML = html || '<div style="padding:20px;color:#999;text-align:center;">暂无数据</div>';
+    }
+}
+
+function loadUserProfile() {
+    const res = apiGetProfile();
+    if (res.code === 200) {
+        const d = res.data;
+        document.getElementById('profile-username').textContent = d.username;
+        document.getElementById('profile-role').textContent = d.role === 'admin' ? '管理员' : '用户';
+        document.getElementById('profile-phone').value = d.phone || '';
+        document.getElementById('profile-email').value = d.email || '';
+        document.getElementById('profile-created').textContent = d.created_at;
+        document.getElementById('profile-reports').textContent = d.report_count + ' 条';
+    }
+}
+function updateProfile() {
+    const res = apiUpdateProfile(document.getElementById('profile-phone').value, document.getElementById('profile-email').value);
+    if (res.code === 200) showToast('信息更新成功');
+}
+function changePassword() {
+    const oldPwd = document.getElementById('old-pwd').value;
+    const newPwd = document.getElementById('new-pwd').value;
+    const confirmPwd = document.getElementById('confirm-pwd').value;
+    if (!oldPwd || !newPwd) { showToast('请填写旧密码和新密码'); return; }
+    if (newPwd !== confirmPwd) { showToast('两次输入的新密码不一致'); return; }
+    if (newPwd.length < 6) { showToast('新密码至少6位'); return; }
+    const res = apiChangePassword(oldPwd, newPwd);
+    if (res.code === 200) {
+        showToast('密码修改成功');
+        document.getElementById('old-pwd').value = '';
+        document.getElementById('new-pwd').value = '';
+        document.getElementById('confirm-pwd').value = '';
+    }
+}
+
+// ==================== 初始化 ====================
+initFloodData();
+
+// 每30秒模拟数据更新
+setInterval(() => {
+    simulateUpdate();
+    if (!currentUser) return;
+    const activeNav = document.querySelector('#nav-menu a.active');
+    if (!activeNav) return;
+    const navId = activeNav.id;
+    if (currentUser.role === 'admin') {
+        if (navId === 'nav-dashboard') loadAdminDashboard();
+    } else {
+        if (navId === 'nav-realtime') loadUserRealtime();
+        if (navId === 'nav-alerts') loadUserAlerts();
+    }
+}, 30000);
+</script>
+</body>
+</html>
