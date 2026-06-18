@@ -169,6 +169,22 @@
         .clickable-row:hover { background: #e3f2fd !important; }
         .clickable-row:hover td:first-child { color: #1565c0; text-decoration: underline; }
         .row-detail-icon { display: inline-block; margin-left: 4px; color: #2196f3; font-size: 12px; }
+        /* 跨模块跳转链接按钮 */
+        .nav-link-btn { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid #ddd; background: #fff; color: #555; text-decoration: none; white-space: nowrap; }
+        .nav-link-btn:hover { background: #e3f2fd; border-color: #2196f3; color: #1565c0; }
+        .nav-link-btn.blue { background: #e3f2fd; color: #1565c0; border-color: #90caf9; }
+        .nav-link-btn.blue:hover { background: #bbdefb; }
+        .nav-link-btn.green { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .nav-link-btn.green:hover { background: #c8e6c9; }
+        .nav-link-btn.orange { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+        .nav-link-btn.orange:hover { background: #ffe0b2; }
+        .nav-link-btn.red { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+        .nav-link-btn.red:hover { background: #ffcdd2; }
+        .nav-link-btn.purple { background: #f3e5f5; color: #7b1fa2; border-color: #ce93d8; }
+        .nav-link-btn.purple:hover { background: #e1bee7; }
+        .module-action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding: 10px 0; border-top: 1px dashed #e0e0e0; }
+        .dashboard-stat-link { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .dashboard-stat-link:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         /* 用户端设备详情弹窗 */
         .modal-box.wide { width: 640px; max-height: 85vh; }
         .device-detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e3f2fd; }
@@ -600,26 +616,34 @@ function getAdminPageHTML(name) {
             <div class="page-header"><h1>系统概览</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDashboard()">刷新数据</button></div>
             <div class="admin-banner"><span>管理员模式</span> | 系统全部功能，可管理设备、用户和系统配置</div>
             <div class="stats-grid">
-                <div class="stat-card"><div class="icon" style="background:#e3f2fd;color:#1976d2;">📊</div><div class="value" id="stat-devices">-</div><div class="label">设备总数</div></div>
-                <div class="stat-card"><div class="icon" style="background:#e8f5e9;color:#388e3c;">📡</div><div class="value" id="stat-online">-</div><div class="label">在线设备</div></div>
-                <div class="stat-card"><div class="icon" style="background:#fff3e0;color:#f57c00;">⚠️</div><div class="value" id="stat-alerts">-</div><div class="label">未读预警</div></div>
-                <div class="stat-card"><div class="icon" style="background:#fce4ec;color:#c62828;">📝</div><div class="value" id="stat-reports">-</div><div class="label">待处理报料</div></div>
+                <div class="stat-card dashboard-stat-link" onclick="goToDevices()"><div class="icon" style="background:#e3f2fd;color:#1976d2;">📊</div><div class="value" id="stat-devices">-</div><div class="label">设备总数 →</div></div>
+                <div class="stat-card dashboard-stat-link" onclick="goToMap()"><div class="icon" style="background:#e8f5e9;color:#388e3c;">📡</div><div class="value" id="stat-online">-</div><div class="label">在线设备 →</div></div>
+                <div class="stat-card dashboard-stat-link" onclick="goToAlerts()"><div class="icon" style="background:#fff3e0;color:#f57c00;">⚠️</div><div class="value" id="stat-alerts">-</div><div class="label">未读预警 →</div></div>
+                <div class="stat-card dashboard-stat-link" onclick="goToReports()"><div class="icon" style="background:#fce4ec;color:#c62828;">📝</div><div class="value" id="stat-reports">-</div><div class="label">待处理报料 →</div></div>
             </div>
-            <div class="info-card"><h3>风险等级分布</h3><div style="display:flex;gap:16px;">
-                <div style="flex:1;text-align:center;padding:16px;background:#e8f5e9;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#2e7d32;" id="risk-green">0</div><div style="font-size:13px;color:#666;">正常</div></div>
-                <div style="flex:1;text-align:center;padding:16px;background:#fff9c4;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#f57f17;" id="risk-yellow">0</div><div style="font-size:13px;color:#666;">关注</div></div>
-                <div style="flex:1;text-align:center;padding:16px;background:#ffe0b2;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#e65100;" id="risk-orange">0</div><div style="font-size:13px;color:#666;">预警</div></div>
-                <div style="flex:1;text-align:center;padding:16px;background:#ffcdd2;border-radius:8px;"><div style="font-size:32px;font-weight:bold;color:#c62828;" id="risk-red">0</div><div style="font-size:13px;color:#666;">危险</div></div>
+            <div class="info-card"><h3>风险等级分布 <span style="font-size:12px;font-weight:normal;color:#2196f3;margin-left:8px;">点击查看预警</span></h3><div style="display:flex;gap:16px;">
+                <div class="dashboard-stat-link" style="flex:1;text-align:center;padding:16px;background:#e8f5e9;border-radius:8px;" onclick="goToAlerts()"><div style="font-size:32px;font-weight:bold;color:#2e7d32;" id="risk-green">0</div><div style="font-size:13px;color:#666;">正常</div></div>
+                <div class="dashboard-stat-link" style="flex:1;text-align:center;padding:16px;background:#fff9c4;border-radius:8px;" onclick="goToAlerts()"><div style="font-size:32px;font-weight:bold;color:#f57f17;" id="risk-yellow">0</div><div style="font-size:13px;color:#666;">关注</div></div>
+                <div class="dashboard-stat-link" style="flex:1;text-align:center;padding:16px;background:#ffe0b2;border-radius:8px;" onclick="goToAlerts()"><div style="font-size:32px;font-weight:bold;color:#e65100;" id="risk-orange">0</div><div style="font-size:13px;color:#666;">预警</div></div>
+                <div class="dashboard-stat-link" style="flex:1;text-align:center;padding:16px;background:#ffcdd2;border-radius:8px;" onclick="goToAlerts()"><div style="font-size:32px;font-weight:bold;color:#c62828;" id="risk-red">0</div><div style="font-size:13px;color:#666;">危险</div></div>
             </div></div>
-            <div class="info-card"><h3>各监测点最新积水数据</h3><div class="data-table" style="box-shadow:none;">
-                <table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>采集时间</th></tr></thead>
+            <div class="info-card"><h3>各监测点最新积水数据 <span style="font-size:12px;font-weight:normal;color:#2196f3;margin-left:8px;">点击行查看详情</span></h3><div class="data-table" style="box-shadow:none;">
+                <table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>采集时间</th><th>快捷操作</th></tr></thead>
                 <tbody id="dashboard-device-list"></tbody></table></div></div>`;
         case 'devices': return `
             <div class="page-header"><h1>设备管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddDeviceModal()">+ 添加设备</button>
             <button class="btn btn-primary btn-sm" onclick="loadAdminDevices()">刷新</button></div></div>
             <div class="admin-banner"><span>管理员权限</span> | 添加和删除监测设备</div>
             <div class="data-table"><table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>经度</th><th>纬度</th><th>状态</th><th>安装日期</th><th>操作</th></tr></thead>
-            <tbody id="device-list"></tbody></table></div>`;
+            <tbody id="device-list"></tbody></table></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">快捷导航：</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
+                <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
+                <span class="nav-link-btn orange" onclick="goToHistory()">📈 历史数据</span>
+                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+            </div>`;
         case 'map': return `
             <div class="page-header"><h1>地图监测</h1><button class="btn btn-primary btn-sm" onclick="loadAdminMap()">刷新</button></div>
             <div class="detail-map-container" id="map-container" style="width:100%;height:520px;position:relative;"></div>
@@ -635,27 +659,52 @@ function getAdminPageHTML(name) {
             <div class="page-header"><h1>AI积水预测</h1></div>
             <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择监测设备：</label>
             <select id="prediction-device"></select>
-            <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="runPrediction()">执行AI预测</button></div>
+            <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="runPrediction()">执行AI预测</button>
+            <div style="display:inline-flex;gap:4px;margin-left:12px;">
+                <span class="nav-link-btn blue" onclick="goToMap(document.getElementById('prediction-device')?.value)">🗺 地图</span>
+                <span class="nav-link-btn orange" onclick="goToHistory(document.getElementById('prediction-device')?.value)">📈 历史</span>
+                <span class="nav-link-btn purple" onclick="goToControl(document.getElementById('prediction-device')?.value)">🎛 操控</span>
+            </div></div>
             <div class="prediction-result" id="prediction-result" style="display:none;">
                 <h3 style="color:#333;margin-bottom:16px;">预测结果（基于LSTM模型）</h3>
                 <div id="prediction-chart" class="prediction-chart"></div>
                 <div id="prediction-details" style="margin-top:16px;"></div></div>`;
         case 'alerts': return `
             <div class="page-header"><h1>预警记录</h1><button class="btn btn-primary btn-sm" onclick="loadAdminAlerts()">刷新</button></div>
-            <div id="alerts-list"></div>`;
+            <div class="admin-banner"><span>管理员</span> | 查看所有预警记录，可跳转至地图、设备操控和应急调度</div>
+            <div id="alerts-list"></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">快捷导航：</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
+                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn green" onclick="goToDatasource()">📥 多源数据</span>
+            </div>`;
         case 'history': return `
             <div class="page-header"><h1>历史数据统计</h1></div>
             <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择设备：</label>
             <select id="history-device"></select>
             <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="loadHistory()">查询</button>
-            <button class="btn btn-sm" style="margin-left:8px;background:#4caf50;color:#fff;" onclick="exportData()">导出Excel</button></div>
+            <button class="btn btn-sm" style="margin-left:8px;background:#4caf50;color:#fff;" onclick="exportData()">导出Excel</button>
+            <div style="display:inline-flex;gap:4px;margin-left:12px;">
+                <span class="nav-link-btn blue" onclick="goToMap(document.getElementById('history-device')?.value)">🗺 地图</span>
+                <span class="nav-link-btn green" onclick="goToPrediction(document.getElementById('history-device')?.value)">🤖 AI预测</span>
+                <span class="nav-link-btn purple" onclick="goToControl(document.getElementById('history-device')?.value)">🎛 操控</span>
+            </div></div>
             <div class="info-card"><h3 style="color:#333;margin-bottom:16px;">积水深度变化趋势</h3><div id="history-chart" class="prediction-chart"></div></div>
             <div class="data-table" style="margin-top:16px;"><table><thead><tr><th>采集时间</th><th>积水深度(m)</th><th>风险等级</th></tr></thead>
             <tbody id="history-list"></tbody></table></div>`;
         case 'reports': return `
             <div class="page-header"><h1>公众报料管理</h1><button class="btn btn-primary btn-sm" onclick="loadAdminReports()">刷新</button></div>
-            <div class="admin-banner"><span>管理员</span> | 处理市民上报的积水信息</div>
-            <div id="reports-list"></div>`;
+            <div class="admin-banner"><span>管理员</span> | 处理市民上报的积水信息，可关联应急调度</div>
+            <div id="reports-list"></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">快捷导航：</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn" onclick="goToDatasource()">📥 多源数据</span>
+                <span class="nav-link-btn orange" onclick="goToAlerts()">⚠️ 预警记录</span>
+            </div>`;
         case 'admin': return `
             <div class="page-header"><h1>系统管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddUserModal()">+ 添加用户</button>
             <button class="btn btn-primary btn-sm" onclick="loadAdminSystem()">刷新</button></div></div>
@@ -665,12 +714,27 @@ function getAdminPageHTML(name) {
             <tbody id="user-list"></tbody></table></div>
             <h3 style="color:#333;margin-bottom:12px;">系统操作日志</h3>
             <div class="data-table"><table><thead><tr><th>操作人</th><th>操作</th><th>详情</th><th>IP地址</th><th>时间</th></tr></thead>
-            <tbody id="log-list"></tbody></table></div>`;
+            <tbody id="log-list"></tbody></table></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">快捷导航：</span>
+                <span class="nav-link-btn" onclick="goToDashboard()">📊 系统概览</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
+                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+            </div>`;
         case 'control': return `
             <div class="page-header"><h1>远程操控</h1><button class="btn btn-primary btn-sm" onclick="loadAdminControl()">刷新</button></div>
             <div class="admin-banner"><span>管理员权限</span> | 远程操控监测设备：开关机、频率调整、传感器校准、紧急停机</div>
             <div class="control-panel"><h3>设备操控面板</h3><div id="control-device-list"></div></div>
-            <div class="control-panel"><h3>指令发送记录</h3><div class="cmd-log" id="cmd-log-list"></div></div>`;
+            <div class="control-panel"><h3>指令发送记录</h3><div class="cmd-log" id="cmd-log-list"></div></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">快捷导航：</span>
+                <span class="nav-link-btn" onclick="goToDevices()">📋 设备管理</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
+                <span class="nav-link-btn orange" onclick="goToHistory()">📈 历史数据</span>
+                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+            </div>`;
         case 'datasource': return `
             <div class="page-header"><h1>多源数据录入</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDatasource()">刷新</button></div>
             <div class="admin-banner"><span>管理员权限</span> | 多源数据接入与管理：传感器、气象局、手动录入、批量导入、公众上报、卫星遥感</div>
@@ -691,7 +755,14 @@ function getAdminPageHTML(name) {
                             <p style="font-size:12px;color:#999;margin-top:4px;">CSV格式：设备ID,积水深度(m),风险等级,采集时间</p>
                             <button class="btn btn-success btn-sm" onclick="submitBatchImport()">模拟导入</button></div></div>
                 </div></div>
-            <div class="control-panel"><h3>数据导入历史</h3><div id="import-history-list"></div></div>`;
+            <div class="control-panel"><h3>数据导入历史</h3><div id="import-history-list"></div></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">数据录入后可前往：</span>
+                <span class="nav-link-btn orange" onclick="goToHistory()">📈 查看历史数据</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
+                <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
+            </div>`;
         case 'dispatch': return `
             <div class="page-header"><h1>应急指挥调度</h1><button class="btn btn-danger btn-sm" onclick="loadAdminDispatch()">刷新态势</button></div>
             <div class="admin-banner" style="background:linear-gradient(90deg,#c62828,#b71c1c);"><span>应急指挥</span> | 宜春市袁州区当前内涝应急指挥调度中心</div>
@@ -704,7 +775,15 @@ function getAdminPageHTML(name) {
                     <label style="font-size:13px;color:#666;">指令内容</label><textarea id="dispatch-command" placeholder="如：立即派遣排水队前往秀江大桥" style="width:100%;"></textarea>
                     <label style="font-size:13px;color:#666;">执行单位</label><select id="dispatch-team" style="width:100%;"></select>
                     <button class="btn btn-danger" onclick="issueDispatchCommand()">🚀 发布调度指令</button></div></div>
-            <div class="control-panel"><h3>已发布调度指令</h3><div class="dispatch-cmd-list" id="dispatch-cmd-list"></div></div>`;
+            <div class="control-panel"><h3>已发布调度指令</h3><div class="dispatch-cmd-list" id="dispatch-cmd-list"></div></div>
+            <div class="module-action-bar">
+                <span style="font-size:13px;color:#999;">应急联动：</span>
+                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
+                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
+                <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
+                <span class="nav-link-btn" onclick="goToReports()">📝 报料管理</span>
+                <span class="nav-link-btn green" onclick="goToDatasource()">📥 多源数据</span>
+            </div>`;
         default: return '<p>页面不存在</p>';
     }
 }
@@ -768,10 +847,10 @@ function loadAdminDashboard() {
     const res = apiGetDashboardStats();
     if (res.code === 200) { const d = res.data; document.getElementById('stat-devices').textContent = d.total_devices; document.getElementById('stat-online').textContent = d.online_devices; document.getElementById('stat-alerts').textContent = d.alert_count; document.getElementById('stat-reports').textContent = d.report_count || 0; document.getElementById('risk-green').textContent = d.risk_stats.green || 0; document.getElementById('risk-yellow').textContent = d.risk_stats.yellow || 0; document.getElementById('risk-orange').textContent = d.risk_stats.orange || 0; document.getElementById('risk-red').textContent = d.risk_stats.red || 0; }
     const res2 = apiGetRiskAssess();
-    if (res2.code === 200) { document.getElementById('dashboard-device-list').innerHTML = res2.data.devices.map(d => `<tr><td>${d.device_id}</td><td>${d.name}</td><td>${d.location||'-'}</td><td>${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td><td>${d.collect_time||'-'}</td></tr>`).join(''); }
+    if (res2.code === 200) { document.getElementById('dashboard-device-list').innerHTML = res2.data.devices.map(d => `<tr class="clickable-row" onclick="goToMap('${d.device_id}')"><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td style="font-weight:600;color:${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#f57f17':'#4caf50'};">${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td><td>${d.collect_time||'-'}</td><td onclick="event.stopPropagation();"><div style="display:flex;gap:4px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺 地图</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖 预测</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToControl('${d.device_id}')">🎛 操控</span></div></td></tr>`).join(''); }
 }
 
-function loadAdminDevices() { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('device-list').innerHTML = res.data.map(d => `<tr><td>${d.device_id}</td><td>${d.name}</td><td>${d.location||'-'}</td><td>${d.longitude||'-'}</td><td>${d.latitude||'-'}</td><td><span class="status-dot status-${d.status}"></span>${d.status==='online'?'在线':'离线'}</td><td>${d.install_date||'-'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.device_id}')">删除</button></td></tr>`).join(''); } }
+function loadAdminDevices() { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('device-list').innerHTML = res.data.map(d => `<tr><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td>${d.longitude||'-'}</td><td>${d.latitude||'-'}</td><td><span class="status-dot status-${d.status}"></span>${d.status==='online'?'在线':'离线'}</td><td>${d.install_date||'-'}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺</span><span class="nav-link-btn purple" onclick="goToControl('${d.device_id}')">🎛</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈</span><button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.device_id}')">删除</button></div></td></tr>`).join(''); } }
 
 function showAddDeviceModal() { showModal(`<h3>添加监测设备</h3><label>设备ID</label><input type="text" id="new-device-id" placeholder="如 DEV007"><label>设备名称</label><input type="text" id="new-device-name" placeholder="如 秀江公园监测点"><label>安装位置</label><input type="text" id="new-device-location" placeholder="如 宜春市袁州区xxx路"><label>经度</label><input type="number" id="new-device-lng" step="0.0001" value="114.3800"><label>纬度</label><input type="number" id="new-device-lat" step="0.0001" value="27.8000"><div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="submitAddDevice()">确认添加</button></div>`); }
 function submitAddDevice() { const data = { device_id: document.getElementById('new-device-id').value, name: document.getElementById('new-device-name').value, location: document.getElementById('new-device-location').value, longitude: parseFloat(document.getElementById('new-device-lng').value), latitude: parseFloat(document.getElementById('new-device-lat').value) }; if (!data.device_id || !data.name) { showToast('设备ID和名称不能为空'); return; } const res = apiAddDevice(data); if (res.code === 200) { closeModal(); loadAdminDevices(); showToast('设备添加成功！'); } }
@@ -949,10 +1028,12 @@ function showMapPopup(idx, deviceId, name, waterLevel, riskLevel, location, lng,
                     <div class="camera-time" id="popup-camera-time">${timeStr}</div>
                 </div>
             </div>
-            <div style="margin-top:12px;display:flex;gap:8px;">
-                <button class="btn btn-primary btn-sm" onclick="goToPrediction('${deviceId}')">AI预测</button>
-                <button class="btn btn-sm" style="background:#4caf50;color:#fff;" onclick="goToHistory('${deviceId}')">历史数据</button>
-                <button class="btn btn-sm" style="background:#eee;color:#666;" onclick="closeMapPopup()">关闭</button>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-primary btn-sm" onclick="goToPrediction('${deviceId}')">🤖 AI预测</button>
+                <button class="btn btn-sm" style="background:#4caf50;color:#fff;" onclick="goToHistory('${deviceId}')">📈 历史数据</button>
+                <button class="btn btn-sm" style="background:#9c27b0;color:#fff;" onclick="goToControl('${deviceId}')">🎛 远程操控</button>
+                <button class="btn btn-sm" style="background:#f44336;color:#fff;" onclick="alertToDispatch('${deviceId}')">🚨 应急调度</button>
+                <button class="btn btn-sm" style="background:#eee;color:#666;" onclick="closeMapPopup()">✕ 关闭</button>
             </div>
         </div>`;
 
@@ -980,29 +1061,67 @@ function closeMapPopup() {
 }
 
 function goToPrediction(deviceId) {
-    closeMapPopup();
+    if (typeof closeMapPopup === 'function') closeMapPopup();
+    if (typeof closeModal === 'function') closeModal();
     showAdminPage('prediction');
     setTimeout(() => { const sel = document.getElementById('prediction-device'); if (sel) { sel.value = deviceId; runPrediction(); } }, 300);
 }
 
 function goToHistory(deviceId) {
-    closeMapPopup();
+    if (typeof closeMapPopup === 'function') closeMapPopup();
+    if (typeof closeModal === 'function') closeModal();
     showAdminPage('history');
     setTimeout(() => { const sel = document.getElementById('history-device'); if (sel) { sel.value = deviceId; loadHistory(); } }, 300);
+}
+
+function goToMap(deviceId) {
+    if (typeof closeModal === 'function') closeModal();
+    showAdminPage('map');
+    if (deviceId) setTimeout(() => { if (typeof showMapPopup === 'function') showMapPopup(deviceId); }, 500);
+}
+
+function goToControl(deviceId) {
+    if (typeof closeModal === 'function') closeModal();
+    showAdminPage('control');
+    if (deviceId) { showToast('已定位到设备 ' + deviceId); setTimeout(() => { const el = document.getElementById('control-device-list'); if (el) { const cards = el.querySelectorAll('.device-control-card'); cards.forEach(c => c.style.border = '2px solid #e0e0e0'); } }, 100); }
+}
+
+function goToDevices() { if (typeof closeModal === 'function') closeModal(); showAdminPage('devices'); }
+function goToAlerts() { if (typeof closeModal === 'function') closeModal(); showAdminPage('alerts'); }
+function goToDatasource() { if (typeof closeModal === 'function') closeModal(); showAdminPage('datasource'); }
+function goToDispatch(eventId) { if (typeof closeModal === 'function') closeModal(); showAdminPage('dispatch'); if (eventId) setTimeout(() => { const sel = document.getElementById('dispatch-event'); if (sel) sel.value = eventId; }, 300); }
+function goToReports() { if (typeof closeModal === 'function') closeModal(); showAdminPage('reports'); }
+function goToDashboard() { if (typeof closeModal === 'function') closeModal(); showAdminPage('dashboard'); }
+function goToSystem() { if (typeof closeModal === 'function') closeModal(); showAdminPage('admin'); }
+
+// 从报料创建应急事件
+function reportToDispatch(reportId) {
+    const r = DB.reports.find(rp => rp.id === reportId);
+    if (!r) return;
+    closeModal();
+    showAdminPage('dispatch');
+    setTimeout(() => { const sel = document.getElementById('dispatch-event'); const cmd = document.getElementById('dispatch-command'); if (cmd) cmd.value = '核实报料：' + r.location + '（' + r.water_depth + '积水），请立即前往处置'; showToast('已关联报料 #' + reportId + '，请选择事件并确认指令'); }, 300);
+}
+
+// 从预警跳转到应急调度
+function alertToDispatch(deviceId) {
+    closeModal();
+    showAdminPage('dispatch');
+    setTimeout(() => { const cmd = document.getElementById('dispatch-command'); const dev = DB.devices.find(d => d.device_id === deviceId); if (cmd) cmd.value = (dev ? dev.name : deviceId) + ' 出现预警积水，请调度救援力量前往处置'; showToast('已关联设备 ' + deviceId + ' 预警'); }, 300);
 }
 
 function loadAdminPrediction() { if (!document.getElementById('prediction-device')) return; if (!document.getElementById('prediction-device').options.length) { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('prediction-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); } } }
 function runPrediction() { const deviceId = document.getElementById('prediction-device').value; if (!deviceId) { showToast('请选择设备'); return; } showToast('正在执行AI预测...'); setTimeout(() => { const res = apiGetPrediction(deviceId); if (res.code === 200) { document.getElementById('prediction-result').style.display = 'block'; drawPredictionChart(res.data); } }, 800); }
 function drawPredictionChart(data) { const history = data.history; const predictions = data.predictions; const allValues = [...history.map(h => h.value), ...predictions.map(p => p.predicted_water_level)]; const maxVal = Math.max(...allValues) * 1.2; const width = 600, height = 250, padding = 40; const points = allValues.length; const stepX = (width - padding * 2) / (points - 1); let historyPath = ''; history.forEach((h, i) => { const x = padding + i * stepX; const y = height - padding - ((h.value) / maxVal) * (height - padding * 2); historyPath += (i === 0 ? 'M' : 'L') + x + ',' + y + ' '; }); const lastX = padding + (history.length-1) * stepX; const lastY = height - padding - (history[history.length-1].value / maxVal) * (height - padding * 2); let predictPath = `M${lastX},${lastY} `; predictions.forEach((p, i) => { const x = padding + (history.length + i) * stepX; const y = height - padding - (p.predicted_water_level / maxVal) * (height - padding * 2); predictPath += `L${x},${y} `; }); document.getElementById('prediction-chart').innerHTML = `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;"><text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">积水深度预测趋势图</text><line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/><line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/><path d="${historyPath}" fill="none" stroke="#2196f3" stroke-width="2"/>${history.map((h,i) => { const x=padding+i*stepX; const y=height-padding-(h.value/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="#2196f3"/>`; }).join('')}<path d="${predictPath}" fill="none" stroke="#ff9800" stroke-width="2" stroke-dasharray="5,3"/>${predictions.map((p,i) => { const x=padding+(history.length+i)*stepX; const y=height-padding-(p.predicted_water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="4" fill="${p.risk_level==='red'?'#f44336':p.risk_level==='orange'?'#ff9800':'#4caf50'}"/>`; }).join('')}</svg>`; document.getElementById('prediction-details').innerHTML = predictions.map(p => `<div style="display:inline-block;padding:12px 20px;margin-right:12px;background:#f5f7fa;border-radius:8px;"><div style="font-size:12px;color:#999;">未来 ${p.hour} 小时</div><div style="font-size:20px;font-weight:bold;color:${p.risk_level==='red'?'#c62828':p.risk_level==='orange'?'#e65100':'#2e7d32'};">${p.predicted_water_level}m</div>${getRiskBadge(p.risk_level)}</div>`).join(''); }
 
-function loadAdminAlerts() { const res = apiGetAlerts(); if (res.code === 200) { const div = document.getElementById('alerts-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无预警记录</div>' : res.data.map(a => `<div class="alert-item"><div class="left"><div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div><div class="msg">${a.message}</div></div><div class="time">${a.created_at||''}</div></div>`).join(''); } }
+function loadAdminAlerts() { const res = apiGetAlerts(); if (res.code === 200) { const div = document.getElementById('alerts-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无预警记录</div>' : res.data.map(a => `<div class="alert-item"><div class="left"><div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div><div class="msg">${a.message}</div><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${a.device_id}')">🗺 地图定位</span><span class="nav-link-btn green" onclick="goToPrediction('${a.device_id}')">🤖 AI预测</span><span class="nav-link-btn orange" onclick="goToHistory('${a.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToControl('${a.device_id}')">🎛 操控</span><span class="nav-link-btn red" onclick="alertToDispatch('${a.device_id}')">🚨 应急调度</span></div></div><div class="time">${a.created_at||''}</div></div>`).join(''); } }
 
 function loadAdminHistory() { if (!document.getElementById('history-device')) return; if (!document.getElementById('history-device').options.length) { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('history-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); } } loadHistory(); }
 function loadHistory() { const deviceId = document.getElementById('history-device')?.value; if (!deviceId) return; const res = apiGetHistory(deviceId); if (res.code === 200) { const data = res.data.reverse(); drawHistoryChart(data); document.getElementById('history-list').innerHTML = data.map(d => `<tr><td>${d.time}</td><td>${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td></tr>`).join(''); } }
 function drawHistoryChart(data) { const chartDiv = document.getElementById('history-chart'); if (!data.length) { chartDiv.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无数据</p>'; return; } const values = data.map(d => d.water_level); const maxVal = Math.max(...values) * 1.2; const width = 600, height = 250, padding = 40; const stepX = (width - padding * 2) / Math.max(data.length - 1, 1); let path = ''; data.forEach((d, i) => { const x = padding + i * stepX; const y = height - padding - (d.water_level / maxVal) * (height - padding * 2); path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' '; }); chartDiv.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;"><text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">24小时积水深度变化</text><line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/><line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/><path d="${path}" fill="none" stroke="#2196f3" stroke-width="2"/>${data.map((d,i) => { const x=padding+i*stepX; const y=height-padding-(d.water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#ffeb3b':'#4caf50'}"/>`; }).join('')}</svg>`; }
 function exportData() { const deviceId = document.getElementById('history-device')?.value; if (!deviceId) { showToast('请选择设备'); return; } const res = apiExportData(deviceId); if (res.code === 200) { const blob = new Blob([res.data.content], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = res.data.filename; a.click(); URL.revokeObjectURL(url); showToast('导出成功！'); } }
 
-function loadAdminReports() { const res = apiGetAdminReports(); if (res.code === 200) { const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' }; const div = document.getElementById('reports-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无公众报料</div>' : res.data.map(r => `<div class="report-card ${r.status}"><div style="display:flex;justify-content:space-between;align-items:start;"><div><strong>${r.reporter_name}</strong> <span style="color:#999;font-size:12px;">${r.reporter_phone||''}</span> <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}" style="margin-left:8px;">${statusMap[r.status]||r.status}</span></div><div style="color:#999;font-size:12px;">${r.created_at||''}</div></div><div style="margin-top:8px;font-size:14px;color:#333;"><strong>位置：</strong>${r.location} <strong>程度：</strong>${r.water_depth}</div><div style="margin-top:4px;font-size:13px;color:#666;">${r.description}</div>${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>回复：</strong>${r.admin_reply}</div>` : ''}<div style="margin-top:8px;"><button class="btn btn-primary btn-sm" onclick="showReplyModal(${r.id})">处理</button></div></div>`).join(''); } }
+function loadAdminReports() { const res = apiGetAdminReports(); if (res.code === 200) { const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' }; const div = document.getElementById('reports-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无公众报料</div>' : res.data.map(r => `<div class="report-card ${r.status}"><div style="display:flex;justify-content:space-between;align-items:start;"><div><strong>${r.reporter_name}</strong> <span style="color:#999;font-size:12px;">${r.reporter_phone||''}</span> <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}" style="margin-left:8px;">${statusMap[r.status]||r.status}</span></div><div style="color:#999;font-size:12px;">${r.created_at||''}</div></div><div style="margin-top:8px;font-size:14px;color:#333;"><strong>位置：</strong>${r.location} <strong>程度：</strong>${r.water_depth}</div><div style="margin-top:4px;font-size:13px;color:#666;">${r.description}</div>${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>回复：</strong>${r.admin_reply}</div>` : ''}<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="showReplyModal(${r.id})">处理</button><span class="nav-link-btn red" onclick="reportToDispatch(${r.id})">🚨 转应急调度</span><span class="nav-link-btn blue" onclick="goToMap()">🗺 地图查看</span></div></div>`).join(''); } }
 function showReplyModal(id) { showModal(`<h3>处理报料</h3><label>处理状态</label><select id="reply-status" style="width:100%;"><option value="verified">已核实</option><option value="resolved">已解决</option></select><label>回复内容</label><textarea id="reply-content" placeholder="回复市民..." style="width:100%;"></textarea><div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="submitReply(${id})">确认</button></div>`); }
 function submitReply(id) { const res = apiUpdateReport(id, document.getElementById('reply-status').value, document.getElementById('reply-content').value); if (res.code === 200) { closeModal(); loadAdminReports(); showToast('报料处理成功'); } }
 
@@ -1206,6 +1325,12 @@ function loadAdminControl() {
                     ${d.status==='online' ? `<button class="btn btn-danger btn-sm" onclick="sendCommand('${d.device_id}','紧急停机','设备紧急断电')">⛔ 紧急停机</button>` : `<button class="btn btn-success btn-sm" onclick="sendCommand('${d.device_id}','开机','设备恢复供电')">▶ 开机</button>`}
                 </div>
                 ${cmds.length > 0 ? `<div style="margin-top:12px;"><div style="font-size:12px;color:#999;margin-bottom:4px;">最近指令：</div>${cmds.slice(0,3).map(c => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f0f0f0;"><span class="cmd-${c.result}">${c.result==='success'?'✅':'❌'}</span> ${c.command}(${c.params}) - ${c.operator} ${c.created_at}</div>`).join('')}</div>` : ''}
+                <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
+                    <span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺 地图</span>
+                    <span class="nav-link-btn" onclick="goToDevices()">📋 设备信息</span>
+                    <span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖 预测</span>
+                    <span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈 历史</span>
+                </div>
             </div>`;
         }).join('');
 
@@ -1344,6 +1469,12 @@ function loadAdminDispatch() {
                     <div style="padding:4px 10px;background:#fce4ec;border-radius:6px;color:#c62828;">影响面积：${e.affected_area}</div>
                     <div style="padding:4px 10px;background:#fff3e0;border-radius:6px;color:#e65100;">影响人群：约${e.affected_people}人</div>
                     ${e.teams.length > 0 ? `<div style="padding:4px 10px;background:#e8f5e9;border-radius:6px;color:#2e7d32;">已派遣：${e.teams.join(', ')}</div>` : ''}
+                </div>
+                <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
+                    <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图查看</span>
+                    <span class="nav-link-btn purple" onclick="goToControl()">🎛 操控设备</span>
+                    <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
+                    <span class="nav-link-btn green" onclick="goToHistory()">📈 历史数据</span>
                 </div>
             </div>`).join('');
     }
