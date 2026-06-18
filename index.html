@@ -164,6 +164,28 @@
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
         .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
 
+        /* 用户端可点击行样式 */
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        .clickable-row:hover { background: #e3f2fd !important; }
+        .clickable-row:hover td:first-child { color: #1565c0; text-decoration: underline; }
+        .row-detail-icon { display: inline-block; margin-left: 4px; color: #2196f3; font-size: 12px; }
+        /* 用户端设备详情弹窗 */
+        .modal-box.wide { width: 640px; max-height: 85vh; }
+        .device-detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e3f2fd; }
+        .device-detail-header h3 { font-size: 18px; color: #1565c0; }
+        .device-detail-header .device-id-tag { background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; }
+        .device-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .device-info-item { padding: 10px; background: #f5f7fa; border-radius: 8px; }
+        .device-info-item .lbl { font-size: 12px; color: #999; margin-bottom: 4px; }
+        .device-info-item .val { font-size: 15px; font-weight: 600; color: #333; }
+        .device-detail-section { margin-bottom: 16px; }
+        .device-detail-section h4 { font-size: 14px; color: #333; margin-bottom: 8px; padding-left: 8px; border-left: 3px solid #2196f3; }
+        .device-camera-box { height: 180px; border-radius: 8px; background: #0d1117; position: relative; overflow: hidden; }
+        .device-camera-box .cam-label { position: absolute; top: 8px; left: 12px; color: #fff; font-size: 11px; font-weight: bold; }
+        .device-camera-box .cam-time { position: absolute; top: 8px; right: 12px; color: #0f0; font-size: 11px; font-family: monospace; }
+        .device-camera-box .cam-water { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s; }
+        .device-mini-chart { height: 120px; }
+
         /* 远程操控样式 */
         .control-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
         .control-panel h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
@@ -424,7 +446,7 @@ function getRiskText(level) { return { green: '正常', yellow: '关注', orange
 function getRiskBadge(level) { return `<span class="badge badge-${level || 'green'}">${getRiskText(level)}</span>`; }
 function showToast(msg) { const toast = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 3000); }
 function showModal(html) { document.getElementById('modal-content').innerHTML = html; document.getElementById('modal-overlay').classList.add('show'); }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); document.getElementById('modal-content').classList.remove('wide'); if (window._detailCamTimer) clearInterval(window._detailCamTimer); }
 
 // ==================== 本地API模拟 ====================
 function apiLogin(username, password) { const user = DB.users.find(u => u.username === username && u.password === password); if (user) return { code: 200, message: '登录成功', data: { user_id: user.id, username: user.username, role: user.role } }; return { code: 401, message: '用户名或密码错误' }; }
@@ -453,6 +475,38 @@ function apiUpdateProfile(phone, email) { const user = DB.users.find(u => u.id =
 function apiChangePassword(oldPwd, newPwd) { const user = DB.users.find(u => u.id === currentUser.user_id); if (!user || user.password !== oldPwd) return { code: 400, message: '旧密码错误' }; user.password = newPwd; DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '修改密码', detail: '用户修改了登录密码', ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '密码修改成功' }; }
 // 获取设备历史趋势数据（用于地图弹窗迷你折线图）
 function apiGetDeviceTrend(deviceId) { const data = DB.flood_data.filter(f => f.device_id === deviceId).slice(-8); return { code: 200, data: data.map(d => ({ water_level: d.water_level, collect_time: d.collect_time })) }; }
+// 获取用户端设备详情（实时数据 + 趋势 + 预测 + 附近避难场所 + 相关预警）
+function apiGetUserDeviceDetail(deviceId) {
+    const dev = DB.devices.find(d => d.device_id === deviceId);
+    if (!dev) return { code: 404, message: '设备不存在' };
+    const allData = DB.flood_data.filter(f => f.device_id === deviceId);
+    const latest = allData[allData.length - 1] || { water_level: 0, risk_level: 'green', collect_time: '-' };
+    const history = allData.slice(-8).map(d => ({ time: d.collect_time, water_level: d.water_level, risk_level: d.risk_level }));
+    const predRes = apiGetPrediction(deviceId);
+    const predictions = predRes.code === 200 ? predRes.data.predictions : [];
+    const deviceAlerts = DB.alerts.filter(a => a.device_id === deviceId).slice(0, 5).map(a => ({ ...a }));
+    // 计算附近避难场所（按已有distance字段或经纬度排序，取最近3个）
+    const statusMap = { open: '开放', limited: '限流', closed: '关闭' };
+    const shelters = (DB.shelters || []).map(s => {
+        let dist = 999;
+        if (s.distance) { dist = parseFloat(s.distance); }
+        else if (s.longitude && s.latitude) { const dx = s.longitude - dev.longitude; const dy = s.latitude - dev.latitude; dist = Math.round(Math.sqrt(dx*dx + dy*dy) * 111); }
+        else { // 无坐标时用ID近似距离
+            dist = Math.abs(s.id - (DB.devices.indexOf(dev)+1)) * 0.8 + 0.3;
+        }
+        return { ...s, status_cn: statusMap[s.status] || s.status, distance_val: dist };
+    }).sort((a,b) => a.distance_val - b.distance_val).slice(0, 3);
+    const riskNames = { green: '正常（安全）', yellow: '关注（轻微积水）', orange: '预警（中等积水）', red: '危险（严重积水）' };
+    const riskColors = { green: '#4caf50', yellow: '#ffeb3b', orange: '#ff9800', red: '#f44336' };
+    return { code: 200, data: {
+        device: { ...dev },
+        latest: { water_level: latest.water_level, risk_level: latest.risk_level, risk_name: riskNames[latest.risk_level] || latest.risk_level, risk_color: riskColors[latest.risk_level] || '#999', collect_time: latest.collect_time },
+        history: history,
+        predictions: predictions,
+        alerts: deviceAlerts,
+        shelters: shelters
+    }};
+}
 
 // ==================== 远程操控 API ====================
 function apiGetDeviceControl() { return { code: 200, data: DB.devices.map(d => { const t = DB.deviceTelemetry[d.device_id] || {}; const cmds = DB.remoteCommands.filter(c => c.device_id === d.device_id).slice(-5).reverse(); return { ...d, telemetry: t, recent_commands: cmds, power_status: d.status === 'online' ? '运行中' : '已停机', sampling_freq: cmds.find(c => c.command === '调整采集频率') ? cmds.find(c => c.command === '调整采集频率').params.split('→')[1] || '5分钟' : '5分钟' }; }) }; }
@@ -663,8 +717,8 @@ function getUserPageHTML(name) {
             <div class="user-banner"><span>实时监测</span> | 宜春市各监测点实时积水数据（每30秒自动更新）</div>
             <div class="alert-banner" id="realtime-alert-banner"></div>
             <div class="stats-grid" id="user-stats"></div>
-            <div class="info-card"><h3>各监测点实时积水情况</h3><div class="data-table" style="box-shadow:none;">
-                <table><thead><tr><th>监测点</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>更新时间</th></tr></thead>
+            <div class="info-card"><h3>各监测点实时积水情况 <span style="font-size:12px;color:#2196f3;font-weight:normal;margin-left:8px;">📌 点击任一监测点查看详细信息</span></h3><div class="data-table" style="box-shadow:none;">
+                <table><thead><tr><th>监测点</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>更新时间</th><th>操作</th></tr></thead>
                 <tbody id="user-realtime-list"></tbody></table></div></div>`;
         case 'alerts': return `
             <div class="page-header"><h1>预警信息接收</h1><button class="btn btn-primary btn-sm" onclick="loadUserAlerts()">刷新</button></div>
@@ -958,7 +1012,115 @@ function submitAddUser() { const data = { username: document.getElementById('new
 function deleteUser(id) { if (!confirm('确定删除该用户？')) return; const res = apiDeleteUser(id); if (res.code === 200) { loadAdminSystem(); showToast('用户已删除'); } }
 
 // ==================== 用户端页面加载 ====================
-function loadUserRealtime() { const res = apiPublicDashboard(); if (res.code === 200) { const d = res.data; const stats = d.stats; document.getElementById('user-stats').innerHTML = `<div class="stat-card"><div class="icon" style="background:#e8f5e9;color:#388e3c;">✅</div><div class="value">${stats.green||0}</div><div class="label">正常路段</div></div><div class="stat-card"><div class="icon" style="background:#fff9c4;color:#f57f17;">⚠️</div><div class="value">${stats.yellow||0}</div><div class="label">关注路段</div></div><div class="stat-card"><div class="icon" style="background:#ffe0b2;color:#e65100;">🚧</div><div class="value">${stats.orange||0}</div><div class="label">预警路段</div></div><div class="stat-card"><div class="icon" style="background:#ffcdd2;color:#c62828;">⛔</div><div class="value">${stats.red||0}</div><div class="label">危险路段</div></div>`; if (stats.orange > 0 || stats.red > 0) { const banner = document.getElementById('realtime-alert-banner'); banner.className = 'alert-banner show'; banner.innerHTML = `<strong>⚠️ 出行提醒</strong> | 当前有 ${stats.orange||0} 个预警路段、${stats.red||0} 个危险路段，请注意避开积水区域！`; } document.getElementById('user-realtime-list').innerHTML = d.devices.map(dev => `<tr><td>${dev.name}</td><td>${dev.location||'-'}</td><td>${dev.water_level}m</td><td>${getRiskBadge(dev.risk_level)}</td><td>${dev.collect_time||'-'}</td></tr>`).join(''); } }
+function loadUserRealtime() { const res = apiPublicDashboard(); if (res.code === 200) { const d = res.data; const stats = d.stats; document.getElementById('user-stats').innerHTML = `<div class="stat-card"><div class="icon" style="background:#e8f5e9;color:#388e3c;">✅</div><div class="value">${stats.green||0}</div><div class="label">正常路段</div></div><div class="stat-card"><div class="icon" style="background:#fff9c4;color:#f57f17;">⚠️</div><div class="value">${stats.yellow||0}</div><div class="label">关注路段</div></div><div class="stat-card"><div class="icon" style="background:#ffe0b2;color:#e65100;">🚧</div><div class="value">${stats.orange||0}</div><div class="label">预警路段</div></div><div class="stat-card"><div class="icon" style="background:#ffcdd2;color:#c62828;">⛔</div><div class="value">${stats.red||0}</div><div class="label">危险路段</div></div>`; if (stats.orange > 0 || stats.red > 0) { const banner = document.getElementById('realtime-alert-banner'); banner.className = 'alert-banner show'; banner.innerHTML = `<strong>⚠️ 出行提醒</strong> | 当前有 ${stats.orange||0} 个预警路段、${stats.red||0} 个危险路段，请注意避开积水区域！`; } document.getElementById('user-realtime-list').innerHTML = d.devices.map(dev => `<tr class="clickable-row" onclick="showUserDeviceDetail('${dev.device_id}')"><td><strong>${dev.name}</strong><span class="row-detail-icon">查看详情</span></td><td>${dev.location||'-'}</td><td style="font-weight:600;color:${dev.risk_level==='red'?'#f44336':dev.risk_level==='orange'?'#ff9800':dev.risk_level==='yellow'?'#f57f17':'#4caf50'};">${dev.water_level}m</td><td>${getRiskBadge(dev.risk_level)}</td><td>${dev.collect_time||'-'}</td><td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showUserDeviceDetail('${dev.device_id}');">详情</button></td></tr>`).join(''); } }
+
+// 用户端：点击监测点查看设备详情
+function showUserDeviceDetail(deviceId) {
+    const res = apiGetUserDeviceDetail(deviceId);
+    if (res.code !== 200) { showToast(res.message || '获取详情失败'); return; }
+    const d = res.data;
+    const dev = d.device;
+    const latest = d.latest;
+    const waterPct = Math.min(latest.water_level / 0.8 * 100, 95);
+    const riskBadge = getRiskBadge(latest.risk_level);
+    // 迷你趋势图 SVG
+    const histData = d.history;
+    let miniChartSVG = '<div style="text-align:center;color:#999;padding:20px;">暂无历史数据</div>';
+    if (histData.length > 0) {
+        const vals = histData.map(h => h.water_level);
+        const maxV = Math.max(...vals, 0.3) * 1.3;
+        const w = 560, h = 100, pad = 30;
+        const stepX = (w - pad*2) / Math.max(histData.length - 1, 1);
+        let path = '';
+        histData.forEach((hd, i) => { const x = pad + i * stepX; const y = h - pad - (hd.water_level / maxV) * (h - pad*2); path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' '; });
+        miniChartSVG = `<svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" style="background:#fafafa;border-radius:6px;"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#ddd"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="#ddd"/><path d="${path}" fill="none" stroke="#2196f3" stroke-width="2"/>${histData.map((hd,i) => { const x=pad+i*stepX; const y=h-pad-(hd.water_level/maxV)*(h-pad*2); return `<circle cx="${x}" cy="${y}" r="3" fill="${hd.risk_level==='red'?'#f44336':hd.risk_level==='orange'?'#ff9800':hd.risk_level==='yellow'?'#ffeb3b':'#4caf50'}"/>`; }).join('')}<text x="${w-10}" y="${h-5}" text-anchor="end" font-size="9" fill="#999">${histData.length}条数据</text></svg>`;
+    }
+    // AI预测
+    let predHTML = '<div style="color:#999;text-align:center;padding:12px;">暂无预测数据</div>';
+    if (d.predictions && d.predictions.length > 0) {
+        predHTML = d.predictions.map(p => { const rc = p.risk_level==='red'?'#f44336':p.risk_level==='orange'?'#ff9800':p.risk_level==='yellow'?'#f57f17':'#4caf50'; return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#f5f7fa;border-radius:6px;margin-bottom:6px;"><span style="font-size:13px;color:#666;">+${p.hour}小时后（${p.predicted_time.split(' ')[1] || ''}）</span><span style="font-weight:bold;font-size:15px;color:${rc};">${p.predicted_water_level}m</span><span class="badge badge-${p.risk_level}" style="font-size:11px;">${p.risk_level==='red'?'危险':p.risk_level==='orange'?'预警':p.risk_level==='yellow'?'关注':'正常'}</span></div>`; }).join('');
+    }
+    // 相关预警
+    let alertHTML = '<div style="color:#999;text-align:center;padding:8px;">该监测点暂无预警记录</div>';
+    if (d.alerts && d.alerts.length > 0) {
+        alertHTML = d.alerts.map(a => `<div class="alert-item" style="margin-bottom:6px;"><div class="left"><div class="device" style="font-size:13px;">${getRiskBadge(a.risk_level)}</div><div class="msg" style="font-size:13px;">${a.message}</div></div><div class="time" style="font-size:12px;">${a.created_at||''}</div></div>`).join('');
+    }
+    // 附近避难场所
+    let shelterHTML = '<div style="color:#999;text-align:center;padding:8px;">暂无附近避难场所信息</div>';
+    if (d.shelters && d.shelters.length > 0) {
+        shelterHTML = d.shelters.map(s => { const sc = s.status_cn==='开放'?'#4caf50':s.status_cn==='限流'?'#ff9800':'#f44336'; const distStr = s.distance_val >= 1 ? s.distance_val.toFixed(1)+'km' : Math.round(s.distance_val*1000)+'m'; return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f7fa;border-radius:6px;margin-bottom:6px;border-left:3px solid ${sc};"><div><div style="font-size:13px;font-weight:600;color:#333;">${s.name}</div><div style="font-size:11px;color:#999;">${s.address||''}</div></div><div style="text-align:right;"><div style="font-size:12px;color:${sc};font-weight:600;">${s.status_cn||'未知'}</div><div style="font-size:11px;color:#999;">约 ${distStr}</div></div></div>`; }).join('');
+    }
+    // 构建弹窗HTML
+    const html = `
+        <div class="device-detail-header">
+            <h3>📊 ${dev.name}</h3>
+            <span class="device-id-tag">${dev.device_id}</span>
+        </div>
+        <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;color:#666;">当前状态：</span>
+            ${riskBadge}
+            <span style="font-size:13px;color:${latest.risk_color};font-weight:600;">${latest.risk_name}</span>
+        </div>
+        <div class="device-info-grid">
+            <div class="device-info-item"><div class="lbl">📍 详细位置</div><div class="val" style="font-size:13px;">${dev.location||'-'}</div></div>
+            <div class="device-info-item"><div class="lbl">🌊 当前积水深度</div><div class="val" style="color:${latest.risk_color};">${latest.water_level}m</div></div>
+            <div class="device-info-item"><div class="lbl">🛰 经纬度坐标</div><div class="val" style="font-size:13px;">${dev.longitude.toFixed(4)}, ${dev.latitude.toFixed(4)}</div></div>
+            <div class="device-info-item"><div class="lbl">🕐 最后更新</div><div class="val" style="font-size:13px;">${latest.collect_time||'-'}</div></div>
+            <div class="device-info-item"><div class="lbl">📡 设备状态</div><div class="val" style="color:#4caf50;">${dev.status==='online'?'在线运行':'离线'}</div></div>
+            <div class="device-info-item"><div class="lbl">📅 安装日期</div><div class="val" style="font-size:13px;">${dev.install_date||'-'}</div></div>
+        </div>
+        <div class="device-detail-section">
+            <h4>📹 实时监控画面</h4>
+            <div class="device-camera-box">
+                <span class="cam-label">📍 ${dev.name.replace('监测点','')} - 实时监控</span>
+                <span class="cam-time" id="detail-cam-time">${formatTime(new Date()).split(' ')[1]}</span>
+                <svg style="position:absolute;top:0;left:0;width:100%;height:100%;" viewBox="0 0 400 180" preserveAspectRatio="none">
+                    <rect x="0" y="0" width="400" height="180" fill="#0d1117"/>
+                    <rect x="20" y="20" width="120" height="60" fill="#1a2332" rx="4"/>
+                    <rect x="30" y="30" width="100" height="8" fill="#2a3a4a" rx="2"/>
+                    <rect x="30" y="44" width="70" height="6" fill="#2a3a4a" rx="2"/>
+                    <rect x="30" y="56" width="80" height="6" fill="#2a3a4a" rx="2"/>
+                    <rect x="160" y="20" width="80" height="50" fill="#1a2332" rx="4"/>
+                    <rect x="260" y="20" width="60" height="35" fill="#1a2332" rx="4"/>
+                    <rect x="340" y="20" width="40" height="40" fill="#1a2332" rx="4"/>
+                    <line x1="0" y1="120" x2="400" y2="120" stroke="#333" stroke-width="1" stroke-dasharray="5,3"/>
+                    <rect x="0" y="${180 - waterPct * 1.8}" width="400" height="${waterPct * 1.8}" fill="rgba(33,150,243,0.35)"/>
+                    <rect x="0" y="${180 - waterPct * 1.8}" width="400" height="3" fill="rgba(33,150,243,0.8)"/>
+                    <circle cx="350" cy="130" r="3" fill="rgba(255,255,255,0.3)"/>
+                    <circle cx="360" cy="140" r="2" fill="rgba(255,255,255,0.2)"/>
+                    <circle cx="50" cy="135" r="2" fill="rgba(255,255,255,0.2)"/>
+                </svg>
+            </div>
+        </div>
+        <div class="device-detail-section">
+            <h4>📈 近期积水趋势</h4>
+            <div class="device-mini-chart">${miniChartSVG}</div>
+        </div>
+        <div class="device-detail-section">
+            <h4>🤖 AI积水预测（未来3小时）</h4>
+            ${predHTML}
+        </div>
+        <div class="device-detail-section">
+            <h4>🚨 相关预警记录</h4>
+            ${alertHTML}
+        </div>
+        <div class="device-detail-section">
+            <h4>🏠 附近避难场所</h4>
+            ${shelterHTML}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="closeModal();showUserPage('report');">📢 上报此处积水</button>
+            <button class="btn" style="flex:1;background:#4caf50;color:#fff;" onclick="closeModal();showUserPage('travel');">🧭 查看出行建议</button>
+            <button class="btn" style="background:#eee;color:#666;" onclick="closeModal();">关闭</button>
+        </div>`;
+    showModal(html);
+    document.getElementById('modal-content').classList.add('wide');
+    // 更新摄像头时间
+    if (window._detailCamTimer) clearInterval(window._detailCamTimer);
+    window._detailCamTimer = setInterval(() => { const el = document.getElementById('detail-cam-time'); if (el) el.textContent = formatTime(new Date()).split(' ')[1]; else clearInterval(window._detailCamTimer); }, 1000);
+    // 记录查看日志
+    DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '数据查看', detail: `查看设备详情：${dev.name}（${dev.device_id}）`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+}
 
 function loadUserAlerts() { const res = apiPublicAlerts(); if (res.code === 200) { const div = document.getElementById('user-alerts-list'); if (res.data.length === 0) { div.innerHTML = '<div style="text-align:center;padding:40px;color:#999;background:#fff;border-radius:8px;">暂无预警信息，一切正常 ✅</div>'; } else { const dangerCount = res.data.filter(a => a.risk_level === 'red').length; const warnCount = res.data.filter(a => a.risk_level === 'orange').length; if (dangerCount > 0 || warnCount > 0) { const banner = document.getElementById('alerts-warning-banner'); banner.className = 'alert-banner show'; banner.innerHTML = `<strong>🚨 预警提醒</strong> | 最近有 ${warnCount} 条预警、${dangerCount} 条危险信息，请注意安全！`; } div.innerHTML = res.data.map(a => `<div class="alert-item"><div class="left"><div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div><div class="msg">${a.message}</div>${a.location ? `<div style="font-size:12px;color:#999;margin-top:4px;">📍 ${a.location}</div>` : ''}</div><div class="time">${a.created_at||''}</div></div>`).join(''); } } }
 
