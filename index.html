@@ -163,6 +163,56 @@
         .map-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
         .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+
+        /* 远程操控样式 */
+        .control-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .control-panel h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+        .device-control-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; }
+        .device-control-card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .device-control-card .name { font-size: 15px; font-weight: bold; color: #333; }
+        .telemetry-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+        .telemetry-item { padding: 8px; background: #f5f7fa; border-radius: 6px; text-align: center; }
+        .telemetry-item .val { font-size: 16px; font-weight: bold; }
+        .telemetry-item .lbl { font-size: 11px; color: #999; }
+        .control-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .cmd-log { background: #f5f7fa; border-radius: 8px; padding: 12px; margin-top: 16px; }
+        .cmd-log-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .cmd-log-item:last-child { border-bottom: none; }
+        .cmd-success { color: #2e7d32; }
+        .cmd-failed { color: #c62828; }
+        .cmd-pending { color: #ff9800; }
+
+        /* 多源数据录入样式 */
+        .source-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border-left: 4px solid #2196f3; }
+        .source-card.active { border-left-color: #4caf50; }
+        .source-card.inactive { border-left-color: #9e9e9e; }
+        .source-name { font-size: 15px; font-weight: bold; color: #333; }
+        .import-form { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .weather-card { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .weather-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .weather-item { text-align: center; padding: 12px; background: rgba(255,255,255,0.8); border-radius: 8px; }
+        .weather-item .icon { font-size: 28px; }
+        .weather-item .val { font-size: 20px; font-weight: bold; color: #333; }
+        .weather-item .lbl { font-size: 12px; color: #666; }
+
+        /* 应急指挥调度样式 */
+        .dispatch-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .event-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-left: 4px solid; }
+        .event-card.critical { border-left-color: #c62828; }
+        .event-card.warning { border-left-color: #ff9800; }
+        .event-card.info { border-left-color: #2196f3; }
+        .event-header { display: flex; justify-content: space-between; align-items: center; }
+        .event-title { font-size: 15px; font-weight: bold; }
+        .team-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 12px; }
+        .team-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .team-info { flex: 1; }
+        .team-name { font-size: 14px; font-weight: bold; color: #333; }
+        .team-detail { font-size: 12px; color: #666; }
+        .resource-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+        .resource-item { background: #fff; border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+        .resource-item .icon { font-size: 28px; }
+        .resource-item .val { font-size: 22px; font-weight: bold; color: #333; }
+        .resource-item .lbl { font-size: 12px; color: #666; }
     </style>
 </head>
 <body>
@@ -255,6 +305,78 @@ let DB = {
     nextUserId: 6,
     nextReportId: 5,
     nextLogId: 9,
+    // 远程操控数据
+    remoteCommands: [
+        { id: 1, device_id: 'DEV002', command: '调整采集频率', params: '5分钟→10分钟', operator: 'admin', result: 'success', created_at: '2026-06-18 08:30:15' },
+        { id: 2, device_id: 'DEV005', command: '设备重启', params: '软重启', operator: 'admin', result: 'success', created_at: '2026-06-18 09:15:30' },
+        { id: 3, device_id: 'DEV002', command: '紧急校准', params: '水位传感器校准', operator: 'manager', result: 'success', created_at: '2026-06-18 10:20:00' },
+        { id: 4, device_id: 'DEV003', command: '调整采集频率', params: '10分钟→5分钟', operator: 'admin', result: 'pending', created_at: '2026-06-18 10:45:00' },
+        { id: 5, device_id: 'DEV001', command: '灯光控制', params: '夜间补光灯开启', operator: 'admin', result: 'success', created_at: '2026-06-18 06:00:00' },
+    ],
+    deviceTelemetry: {
+        DEV001: { cpu: '23%', memory: '45%', battery: '92%', signal: '-32dBm', temperature: '38°C', uptime: '72h', firmware: 'v2.1.3' },
+        DEV002: { cpu: '67%', memory: '78%', battery: '85%', signal: '-41dBm', temperature: '42°C', uptime: '48h', firmware: 'v2.1.3' },
+        DEV003: { cpu: '31%', memory: '52%', battery: '90%', signal: '-28dBm', temperature: '36°C', uptime: '96h', firmware: 'v2.1.2' },
+        DEV004: { cpu: '45%', memory: '60%', battery: '88%', signal: '-35dBm', temperature: '39°C', uptime: '60h', firmware: 'v2.1.3' },
+        DEV005: { cpu: '19%', memory: '38%', battery: '95%', signal: '-25dBm', temperature: '34°C', uptime: '120h', firmware: 'v2.1.4' },
+        DEV006: { cpu: '38%', memory: '55%', battery: '91%', signal: '-30dBm', temperature: '37°C', uptime: '84h', firmware: 'v2.1.2' },
+    },
+    // 多源数据录入
+    dataSources: [
+        { id: 1, name: '水位传感器自动采集', type: '传感器', status: 'active', source: 'MQTT协议上报', frequency: '5分钟/次', last_sync: '2026-06-18 10:38:00', total_records: 12680, description: '6个监测点通过MQTT协议每5分钟自动上报积水深度、温度等数据' },
+        { id: 2, name: '宜春市气象局API对接', type: '气象数据', status: 'active', source: '宜春市气象局开放API', frequency: '1小时/次', last_sync: '2026-06-18 10:00:00', total_records: 4320, description: '对接宜春市气象局实时降雨量、温度、湿度、风速数据' },
+        { id: 3, name: '人工手动录入', type: '手动录入', status: 'active', source: '管理员后台录入', frequency: '按需', last_sync: '2026-06-18 09:30:00', total_records: 156, description: '管理员手动录入巡查发现的积水点位、深度等数据' },
+        { id: 4, name: '批量CSV数据导入', type: '文件导入', status: 'active', source: 'CSV/Excel文件上传', frequency: '按需', last_sync: '2026-06-15 14:00:00', total_records: 2400, description: '支持批量导入历史积水数据CSV文件，用于模型训练补充' },
+        { id: 5, name: '公众上报数据融合', type: '公众上报', status: 'active', source: '用户端上报接口', frequency: '实时', last_sync: '2026-06-18 09:45:00', total_records: 89, description: '市民通过公众上报提交的积水信息，经审核后融合入库' },
+        { id: 6, name: '卫星遥感影像', type: '卫星数据', status: 'inactive', source: '高分卫星影像服务', frequency: '每日', last_sync: '2026-06-10 08:00:00', total_records: 180, description: '高分卫星遥感影像识别大面积积水区域（当前服务暂停升级中）' },
+    ],
+    weatherData: {
+        city: '宜春市袁州区',
+        date: '2026-06-18',
+        current: { temperature: 26, humidity: 92, rainfall: 45.2, wind_speed: 12, weather: '暴雨', visibility: '2km', pressure: '1003hPa', uv_index: 0 },
+        forecast: [
+            { time: '11:00', weather: '暴雨', rainfall: 50, temperature: 25 },
+            { time: '14:00', weather: '大雨', rainfall: 35, temperature: 24 },
+            { time: '17:00', weather: '中雨', rainfall: 20, temperature: 23 },
+            { time: '20:00', weather: '小雨', rainfall: 8, temperature: 22 },
+        ],
+        history: [
+            { date: '06-15', rainfall: 5.2, weather: '多云' },
+            { date: '06-16', rainfall: 12.8, weather: '小雨' },
+            { date: '06-17', rainfall: 28.5, weather: '中雨' },
+            { date: '06-18', rainfall: 45.2, weather: '暴雨' },
+        ],
+    },
+    importHistory: [
+        { id: 1, source: '传感器自动采集', records: 720, status: 'success', operator: '系统自动', created_at: '2026-06-18 10:38:00' },
+        { id: 2, source: '宜春市气象局API', records: 24, status: 'success', operator: '系统自动', created_at: '2026-06-18 10:00:00' },
+        { id: 3, source: '人工手动录入', records: 3, status: 'success', operator: 'admin', created_at: '2026-06-18 09:30:00' },
+        { id: 4, source: '公众上报融合', records: 2, status: 'success', operator: '系统自动', created_at: '2026-06-18 09:45:00' },
+        { id: 5, source: '批量CSV导入', records: 2400, status: 'success', operator: 'manager', created_at: '2026-06-15 14:00:00' },
+        { id: 6, source: '卫星遥感影像', records: 0, status: 'failed', operator: '系统自动', created_at: '2026-06-18 08:00:00' },
+    ],
+    // 应急指挥调度
+    emergencyEvents: [
+        { id: 1, title: '秀江大桥区域严重内涝', level: 'critical', location: '宜春市袁州区秀江中路秀江大桥', water_depth: '0.25m', affected_area: '约2000㎡', affected_people: 350, status: 'active', started_at: '2026-06-18 06:30', description: '秀江大桥下积水严重，车辆无法通行，周边商铺受淹', teams: ['宜春市市政排水队', '袁州区交警中队'] },
+        { id: 2, title: '宜春火车站出站口积水', level: 'critical', location: '宜春市袁州区站前路宜春站出站口', water_depth: '0.22m', affected_area: '约800㎡', affected_people: 120, status: 'active', started_at: '2026-06-18 08:15', description: '出站口积水到膝盖，大量旅客滞留', teams: ['宜春市市政排水队'] },
+        { id: 3, title: '润达国际周边道路积水', level: 'warning', location: '宜春市袁州区卢洲北路润达国际', water_depth: '0.15m', affected_area: '约500㎡', affected_people: 60, status: 'monitoring', started_at: '2026-06-18 07:00', description: '商场周边道路积水，行人通行受阻', teams: [] },
+        { id: 4, title: '宜春学院南门路面积水', level: 'warning', location: '宜春市袁州区学府路宜春学院南门', water_depth: '0.18m', affected_area: '约600㎡', affected_people: 80, status: 'monitoring', started_at: '2026-06-18 09:00', description: '南门路面积水较深，电动车通行困难', teams: [] },
+    ],
+    rescueTeams: [
+        { id: 1, name: '宜春市市政排水应急队', type: '排水', personnel: 15, status: 'dispatched', location: '秀江大桥现场', captain: '陈队长', phone: '0795-3280001', equipment: '大型排水泵3台、沙袋200个' },
+        { id: 2, name: '宜春市消防大队袁州区中队', type: '消防救援', personnel: 20, status: 'standby', location: '袁州区消防救援站', captain: '刘指导员', phone: '0795-3280002', equipment: '救援车2台、冲锋舟1艘' },
+        { id: 3, name: '宜春市交警支队袁州区中队', type: '交通管制', personnel: 12, status: 'dispatched', location: '秀江大桥/宜春站路口', captain: '张队长', phone: '0795-3280003', equipment: '警用摩托4台、路障设备若干' },
+        { id: 4, name: '宜春市应急管理局指挥组', type: '指挥协调', personnel: 8, status: 'active', location: '宜春市应急指挥中心', captain: '赵局长', phone: '0795-3280004', equipment: '指挥通信系统1套' },
+        { id: 5, name: '袁州区社区志愿者服务队', type: '社区协助', personnel: 30, status: 'standby', location: '各社区服务中心', captain: '李主任', phone: '0795-3280005', equipment: '救生圈20个、雨具50套' },
+    ],
+    dispatchCommands: [
+        { id: 1, event_id: 1, command: '派遣市政排水队前往秀江大桥', issued_by: 'admin', issued_at: '2026-06-18 06:45', status: '执行中', team: '宜春市市政排水队' },
+        { id: 2, event_id: 1, command: '交警封锁秀江大桥路段，设置绕行标识', issued_by: 'admin', issued_at: '2026-06-18 07:00', status: '已执行', team: '袁州区交警中队' },
+        { id: 3, event_id: 2, command: '增派排水设备至宜春站出站口', issued_by: 'manager', issued_at: '2026-06-18 08:30', status: '执行中', team: '宜春市市政排水队' },
+        { id: 4, event_id: 2, command: '通知宜春站启动旅客疏散预案', issued_by: 'admin', issued_at: '2026-06-18 08:45', status: '已执行', team: '宜春站管理方' },
+        { id: 5, event_id: 3, command: '监控润达国际周边水位变化', issued_by: 'manager', issued_at: '2026-06-18 07:15', status: '持续监控', team: '应急管理局指挥组' },
+    ],
+    resources: { pumps: 5, rescue_vehicles: 4, boats: 1, sandbags: 600, life_jackets: 30, communication_sets: 2, emergency_funds: '50万元' },
 };
 
 // 初始化积水数据
@@ -332,6 +454,25 @@ function apiChangePassword(oldPwd, newPwd) { const user = DB.users.find(u => u.i
 // 获取设备历史趋势数据（用于地图弹窗迷你折线图）
 function apiGetDeviceTrend(deviceId) { const data = DB.flood_data.filter(f => f.device_id === deviceId).slice(-8); return { code: 200, data: data.map(d => ({ water_level: d.water_level, collect_time: d.collect_time })) }; }
 
+// ==================== 远程操控 API ====================
+function apiGetDeviceControl() { return { code: 200, data: DB.devices.map(d => { const t = DB.deviceTelemetry[d.device_id] || {}; const cmds = DB.remoteCommands.filter(c => c.device_id === d.device_id).slice(-5).reverse(); return { ...d, telemetry: t, recent_commands: cmds, power_status: d.status === 'online' ? '运行中' : '已停机', sampling_freq: cmds.find(c => c.command === '调整采集频率') ? cmds.find(c => c.command === '调整采集频率').params.split('→')[1] || '5分钟' : '5分钟' }; }) }; }
+function apiSendCommand(deviceId, command, params) { DB.remoteCommands.unshift({ id: DB.remoteCommands.length + 1, device_id: deviceId, command: command, params: params, operator: currentUser.username, result: 'success', created_at: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '远程操控', detail: `对设备 ${deviceId} 发送指令：${command}(${params})`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: `指令已发送：${command}(${params})` }; }
+function apiGetCommandLog() { return { code: 200, data: DB.remoteCommands.slice().reverse().slice(0, 30) }; }
+
+// ==================== 多源数据录入 API ====================
+function apiGetDataSources() { return { code: 200, data: DB.dataSources }; }
+function apiGetWeather() { return { code: 200, data: DB.weatherData }; }
+function apiGetImportHistory() { return { code: 200, data: DB.importHistory }; }
+function apiManualInput(data) { DB.importHistory.unshift({ id: DB.importHistory.length + 1, source: '人工手动录入', records: 1, status: 'success', operator: currentUser.username, created_at: formatTime(new Date()) }); DB.flood_data.push({ device_id: data.device_id, water_level: parseFloat(data.water_level), risk_level: getRiskLevel(parseFloat(data.water_level)), collect_time: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '数据录入', detail: `手动录入 ${data.device_id} 积水深度 ${data.water_level}m`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '数据录入成功' }; }
+function apiBatchImport(count) { DB.importHistory.unshift({ id: DB.importHistory.length + 1, source: '批量CSV导入', records: count, status: 'success', operator: currentUser.username, created_at: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '数据录入', detail: `批量导入 ${count} 条CSV数据`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: `成功导入 ${count} 条数据` }; }
+
+// ==================== 应急指挥调度 API ====================
+function apiGetEmergencyEvents() { return { code: 200, data: DB.emergencyEvents }; }
+function apiGetRescueTeams() { return { code: 200, data: DB.rescueTeams }; }
+function apiGetDispatchCommands() { return { code: 200, data: DB.dispatchCommands }; }
+function apiGetResources() { return { code: 200, data: DB.resources }; }
+function apiIssueDispatchCommand(eventId, command, team) { DB.dispatchCommands.unshift({ id: DB.dispatchCommands.length + 1, event_id: eventId, command: command, issued_by: currentUser.username, issued_at: formatTime(new Date()), status: '执行中', team: team }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '应急调度', detail: `对事件#${eventId}发布指令：${command}，执行单位：${team}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '调度指令已发布' }; }
+
 // ==================== 登录 ====================
 let currentUser = null;
 let loginRole = 'admin';
@@ -373,6 +514,9 @@ function initUI(user) {
             <a onclick="showAdminPage('prediction')" id="nav-prediction">AI积水预测</a>
             <a onclick="showAdminPage('alerts')" id="nav-alerts">预警记录</a>
             <a onclick="showAdminPage('history')" id="nav-history">历史数据</a>
+            <a onclick="showAdminPage('control')" id="nav-control">远程操控</a>
+            <a onclick="showAdminPage('datasource')" id="nav-datasource">多源数据录入</a>
+            <a onclick="showAdminPage('dispatch')" id="nav-dispatch">应急指挥调度</a>
             <a onclick="showAdminPage('reports')" id="nav-reports">公众报料管理</a>
             <a onclick="showAdminPage('admin')" id="nav-admin">系统管理</a>`;
     } else {
@@ -392,7 +536,7 @@ function initUI(user) {
 
 function switchNavActive(navId) { document.querySelectorAll('#nav-menu a').forEach(a => a.classList.remove('active')); const el = document.getElementById(navId); if (el) el.classList.add('active'); }
 
-function showAdminPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { dashboard: loadAdminDashboard, devices: loadAdminDevices, map: loadAdminMap, prediction: loadAdminPrediction, alerts: loadAdminAlerts, history: loadAdminHistory, reports: loadAdminReports, admin: loadAdminSystem }; content.innerHTML = getAdminPageHTML(name); if (loaders[name]) loaders[name](); }
+function showAdminPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { dashboard: loadAdminDashboard, devices: loadAdminDevices, map: loadAdminMap, prediction: loadAdminPrediction, alerts: loadAdminAlerts, history: loadAdminHistory, control: loadAdminControl, datasource: loadAdminDatasource, dispatch: loadAdminDispatch, reports: loadAdminReports, admin: loadAdminSystem }; content.innerHTML = getAdminPageHTML(name); if (loaders[name]) loaders[name](); }
 function showUserPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { realtime: loadUserRealtime, alerts: loadUserAlerts, report: loadUserReport, travel: loadUserTravel, profile: loadUserProfile }; content.innerHTML = getUserPageHTML(name); if (loaders[name]) loaders[name](); }
 
 // ==================== 管理员页面 HTML ====================
@@ -468,6 +612,45 @@ function getAdminPageHTML(name) {
             <h3 style="color:#333;margin-bottom:12px;">系统操作日志</h3>
             <div class="data-table"><table><thead><tr><th>操作人</th><th>操作</th><th>详情</th><th>IP地址</th><th>时间</th></tr></thead>
             <tbody id="log-list"></tbody></table></div>`;
+        case 'control': return `
+            <div class="page-header"><h1>远程操控</h1><button class="btn btn-primary btn-sm" onclick="loadAdminControl()">刷新</button></div>
+            <div class="admin-banner"><span>管理员权限</span> | 远程操控监测设备：开关机、频率调整、传感器校准、紧急停机</div>
+            <div class="control-panel"><h3>设备操控面板</h3><div id="control-device-list"></div></div>
+            <div class="control-panel"><h3>指令发送记录</h3><div class="cmd-log" id="cmd-log-list"></div></div>`;
+        case 'datasource': return `
+            <div class="page-header"><h1>多源数据录入</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDatasource()">刷新</button></div>
+            <div class="admin-banner"><span>管理员权限</span> | 多源数据接入与管理：传感器、气象局、手动录入、批量导入、公众上报、卫星遥感</div>
+            <div class="weather-card" id="weather-display"></div>
+            <div class="control-panel"><h3>数据源接入状态</h3><div id="datasource-list"></div></div>
+            <div class="import-form"><h3>数据录入操作</h3>
+                <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;">
+                    <div class="info-card"><h3>手动录入积水数据</h3>
+                        <div style="display:grid;gap:8px;">
+                            <label style="font-size:13px;color:#666;">设备ID</label><select id="manual-device" style="width:100%;"></select>
+                            <label style="font-size:13px;color:#666;">积水深度(m)</label><input type="number" id="manual-water-level" step="0.01" placeholder="如 0.25" style="width:100%;">
+                            <label style="font-size:13px;color:#666;">备注</label><input type="text" id="manual-note" placeholder="如 巡查发现新增积水" style="width:100%;">
+                            <button class="btn btn-primary btn-sm" onclick="submitManualInput()">录入数据</button></div></div>
+                    <div class="info-card"><h3>批量CSV数据导入</h3>
+                        <div style="display:grid;gap:8px;">
+                            <label style="font-size:13px;color:#666;">CSV文件</label><input type="file" id="csv-file" accept=".csv" style="width:100%;font-size:13px;">
+                            <label style="font-size:13px;color:#666;">数据类型</label><select id="csv-type" style="width:100%;"><option value="flood">积水监测数据</option><option value="weather">气象数据</option><option value="sensor">传感器校准数据</option></select>
+                            <p style="font-size:12px;color:#999;margin-top:4px;">CSV格式：设备ID,积水深度(m),风险等级,采集时间</p>
+                            <button class="btn btn-success btn-sm" onclick="submitBatchImport()">模拟导入</button></div></div>
+                </div></div>
+            <div class="control-panel"><h3>数据导入历史</h3><div id="import-history-list"></div></div>`;
+        case 'dispatch': return `
+            <div class="page-header"><h1>应急指挥调度</h1><button class="btn btn-danger btn-sm" onclick="loadAdminDispatch()">刷新态势</button></div>
+            <div class="admin-banner" style="background:linear-gradient(90deg,#c62828,#b71c1c);"><span>应急指挥</span> | 宜春市袁州区当前内涝应急指挥调度中心</div>
+            <div class="resource-grid" id="dispatch-resources"></div>
+            <div class="control-panel"><h3>🚨 当前应急事件</h3><div id="dispatch-events"></div></div>
+            <div class="control-panel"><h3>救援力量调度</h3><div id="dispatch-teams"></div></div>
+            <div class="import-form"><h3>发布调度指令</h3>
+                <div style="display:grid;gap:12px;">
+                    <label style="font-size:13px;color:#666;">关联事件</label><select id="dispatch-event" style="width:100%;"></select>
+                    <label style="font-size:13px;color:#666;">指令内容</label><textarea id="dispatch-command" placeholder="如：立即派遣排水队前往秀江大桥" style="width:100%;"></textarea>
+                    <label style="font-size:13px;color:#666;">执行单位</label><select id="dispatch-team" style="width:100%;"></select>
+                    <button class="btn btn-danger" onclick="issueDispatchCommand()">🚀 发布调度指令</button></div></div>
+            <div class="control-panel"><h3>已发布调度指令</h3><div class="dispatch-cmd-list" id="dispatch-cmd-list"></div></div>`;
         default: return '<p>页面不存在</p>';
     }
 }
@@ -830,6 +1013,237 @@ function loadUserTravel() {
 function loadUserProfile() { const res = apiGetProfile(); if (res.code === 200) { const d = res.data; document.getElementById('profile-username').textContent = d.username; document.getElementById('profile-role').textContent = d.role === 'admin' ? '管理员' : '用户'; document.getElementById('profile-phone').value = d.phone || ''; document.getElementById('profile-email').value = d.email || ''; document.getElementById('profile-created').textContent = d.created_at; document.getElementById('profile-reports').textContent = d.report_count + ' 条'; } }
 function updateProfile() { const res = apiUpdateProfile(document.getElementById('profile-phone').value, document.getElementById('profile-email').value); if (res.code === 200) showToast('信息更新成功'); }
 function changePassword() { const oldPwd = document.getElementById('old-pwd').value; const newPwd = document.getElementById('new-pwd').value; const confirmPwd = document.getElementById('confirm-pwd').value; if (!oldPwd || !newPwd) { showToast('请填写旧密码和新密码'); return; } if (newPwd !== confirmPwd) { showToast('两次输入的新密码不一致'); return; } if (newPwd.length < 6) { showToast('新密码至少6位'); return; } const res = apiChangePassword(oldPwd, newPwd); if (res.code === 200) { showToast('密码修改成功'); document.getElementById('old-pwd').value = ''; document.getElementById('new-pwd').value = ''; document.getElementById('confirm-pwd').value = ''; } }
+
+// ==================== 远程操控 ====================
+function loadAdminControl() {
+    const res = apiGetDeviceControl();
+    if (res.code === 200) {
+        const div = document.getElementById('control-device-list');
+        div.innerHTML = res.data.map(d => {
+            const t = d.telemetry || {};
+            const cmds = d.recent_commands || [];
+            return `
+            <div class="device-control-card">
+                <div class="header">
+                    <div><div class="name">${d.device_id} - ${d.name}</div><div style="font-size:12px;color:#999;">${d.location}</div></div>
+                    <div><span class="badge badge-${d.status==='online'?'green':'red'}">${d.power_status||'运行中'}</span> <span style="font-size:12px;color:#999;margin-left:8px;">采集频率：${d.sampling_freq||'5分钟'}</span></div>
+                </div>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item"><div class="val">${t.cpu||'-'}</div><div class="lbl">CPU占用</div></div>
+                    <div class="telemetry-item"><div class="val">${t.memory||'-'}</div><div class="lbl">内存占用</div></div>
+                    <div class="telemetry-item"><div class="val">${t.battery||'-'}</div><div class="lbl">电池电量</div></div>
+                    <div class="telemetry-item"><div class="val">${t.signal||'-'}</div><div class="lbl">信号强度</div></div>
+                </div>
+                <div style="font-size:12px;color:#666;margin-bottom:8px;">温度：${t.temperature||'-'} | 运行时长：${t.uptime||'-'} | 固件版本：${t.firmware||'-'} | 经纬度：${d.longitude}, ${d.latitude}</div>
+                <div class="control-btns">
+                    <button class="btn btn-primary btn-sm" onclick="sendCommand('${d.device_id}','设备重启','软重启')">🔄 重启</button>
+                    <button class="btn btn-sm" style="background:#ff9800;color:#fff;" onclick="sendCommand('${d.device_id}','调整采集频率','5分钟→10分钟')">⏱ 10分钟</button>
+                    <button class="btn btn-sm" style="background:#2196f3;color:#fff;" onclick="sendCommand('${d.device_id}','调整采集频率','10分钟→5分钟')">⏱ 5分钟</button>
+                    <button class="btn btn-sm" style="background:#9c27b0;color:#fff;" onclick="sendCommand('${d.device_id}','紧急校准','水位传感器校准')">🎯 校准</button>
+                    <button class="btn btn-sm" style="background:#4caf50;color:#fff;" onclick="sendCommand('${d.device_id}','灯光控制','夜间补光灯开启')">💡 补光灯</button>
+                    ${d.status==='online' ? `<button class="btn btn-danger btn-sm" onclick="sendCommand('${d.device_id}','紧急停机','设备紧急断电')">⛔ 紧急停机</button>` : `<button class="btn btn-success btn-sm" onclick="sendCommand('${d.device_id}','开机','设备恢复供电')">▶ 开机</button>`}
+                </div>
+                ${cmds.length > 0 ? `<div style="margin-top:12px;"><div style="font-size:12px;color:#999;margin-bottom:4px;">最近指令：</div>${cmds.slice(0,3).map(c => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f0f0f0;"><span class="cmd-${c.result}">${c.result==='success'?'✅':'❌'}</span> ${c.command}(${c.params}) - ${c.operator} ${c.created_at}</div>`).join('')}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        // 指令发送记录
+        const logRes = apiGetCommandLog();
+        if (logRes.code === 200) {
+            document.getElementById('cmd-log-list').innerHTML = logRes.data.length === 0 ? '<div style="text-align:center;padding:20px;color:#999;">暂无指令记录</div>' :
+                logRes.data.slice(0, 20).map(c => {
+                    const dev = DB.devices.find(d => d.device_id === c.device_id);
+                    const resultBadge = c.result === 'success' ? '<span class="cmd-success">✅ 成功</span>' : c.result === 'failed' ? '<span class="cmd-failed">❌ 失败</span>' : '<span class="cmd-pending">⏳ 待确认</span>';
+                    return `<div class="cmd-log-item"><div style="flex:1;"><strong>${dev ? dev.name : c.device_id}</strong> ${c.command}(${c.params})</div><div style="width:80px;">${resultBadge}</div><div style="width:80px;font-size:12px;color:#999;">${c.operator}</div><div style="width:140px;font-size:12px;color:#999;">${c.created_at}</div></div>`;
+                }).join('');
+        }
+    }
+}
+
+function sendCommand(deviceId, command, params) {
+    if (!confirm(`确认向设备 ${deviceId} 发送指令：${command}(${params})？`)) return;
+    const res = apiSendCommand(deviceId, command, params);
+    if (res.code === 200) { showToast(res.message); loadAdminControl(); }
+}
+
+// ==================== 多源数据录入 ====================
+function loadAdminDatasource() {
+    // 天气数据
+    const weatherRes = apiGetWeather();
+    if (weatherRes.code === 200) {
+        const w = weatherRes.data;
+        document.getElementById('weather-display').innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div><h3 style="color:#333;">${w.city} 实时气象</h3><p style="font-size:12px;color:#666;">数据来源：宜春市气象局开放API | 更新时间：${w.date} 10:00</p></div>
+                <div style="font-size:32px;">🌧</div>
+            </div>
+            <div class="weather-grid">
+                <div class="weather-item"><div class="icon">🌡</div><div class="val">${w.current.temperature}°C</div><div class="lbl">温度</div></div>
+                <div class="weather-item"><div class="icon">💧</div><div class="val">${w.current.humidity}%</div><div class="lbl">湿度</div></div>
+                <div class="weather-item"><div class="icon">🌧</div><div class="val">${w.current.rainfall}mm</div><div class="lbl">降雨量</div></div>
+                <div class="weather-item"><div class="icon">💨</div><div class="val">${w.current.wind_speed}km/h</div><div class="lbl">风速</div></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:12px;font-size:13px;">
+                <div style="padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;">天气：${w.current.weather}</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;">能见度：${w.current.visibility}</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;">气压：${w.current.pressure}</div>
+                <div style="padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;">UV指数：${w.current.uv_index}</div>
+            </div>
+            <h4 style="color:#333;margin-top:16px;">未来降雨预报</h4>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                ${w.forecast.map(f => `<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;"><div style="font-size:12px;color:#666;">${f.time}</div><div style="font-size:14px;">${f.weather}</div><div style="font-size:16px;font-weight:bold;color:#1976d2;">${f.rainfall}mm</div><div style="font-size:12px;color:#999;">${f.temperature}°C</div></div>`).join('')}
+            </div>
+            <h4 style="color:#333;margin-top:16px;">近4日降雨趋势</h4>
+            <div style="display:flex;gap:8px;">
+                ${w.history.map(h => `<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.6);border-radius:6px;flex:1;"><div style="font-size:12px;color:#666;">${h.date}</div><div style="font-size:14px;">${h.weather}</div><div style="font-size:16px;font-weight:bold;color:#1976d2;">${h.rainfall}mm</div></div>`).join('')}
+            </div>`;
+    }
+
+    // 数据源状态
+    const sourceRes = apiGetDataSources();
+    if (sourceRes.code === 200) {
+        document.getElementById('datasource-list').innerHTML = sourceRes.data.map(s => `
+            <div class="source-card ${s.status === 'active' ? 'active' : 'inactive'}">
+                <div style="display:flex;justify-content:space-between;align-items:start;">
+                    <div><div class="source-name">${s.name}</div><div style="font-size:12px;color:#666;margin-top:4px;">${s.description}</div></div>
+                    <div><span class="badge badge-${s.status==='active'?'green':'yellow'}">${s.status==='active'?'运行中':'暂停'}</span></div>
+                </div>
+                <div style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:#999;">
+                    <div>来源：${s.source}</div><div>频率：${s.frequency}</div><div>同步：${s.last_sync}</div><div>累计：${s.total_records}条</div>
+                </div>
+            </div>`).join('');
+    }
+
+    // 设备选择下拉框
+    const devRes = apiGetDevices();
+    if (devRes.code === 200) {
+        const sel = document.getElementById('manual-device');
+        if (sel && !sel.options.length) { sel.innerHTML = devRes.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); }
+    }
+
+    // 导入历史
+    const histRes = apiGetImportHistory();
+    if (histRes.code === 200) {
+        document.getElementById('import-history-list').innerHTML = histRes.data.slice(0, 15).map(h => `
+            <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+                <div style="flex:1;"><strong>${h.source}</strong> - 导入 ${h.records} 条数据</div>
+                <div style="width:80px;"><span class="badge badge-${h.status==='success'?'green':'red'}">${h.status==='success'?'成功':'失败'}</span></div>
+                <div style="width:80px;font-size:12px;color:#999;">${h.operator}</div>
+                <div style="width:140px;font-size:12px;color:#999;">${h.created_at}</div>
+            </div>`).join('');
+    }
+}
+
+function submitManualInput() {
+    const deviceId = document.getElementById('manual-device').value;
+    const waterLevel = document.getElementById('manual-water-level').value;
+    if (!deviceId || !waterLevel) { showToast('请选择设备并输入积水深度'); return; }
+    const res = apiManualInput({ device_id: deviceId, water_level: waterLevel });
+    if (res.code === 200) { showToast('数据录入成功！'); document.getElementById('manual-water-level').value = ''; document.getElementById('manual-note').value = ''; loadAdminDatasource(); }
+}
+
+function submitBatchImport() {
+    const count = Math.floor(Math.random() * 500) + 100;
+    const res = apiBatchImport(count);
+    if (res.code === 200) { showToast(res.message); loadAdminDatasource(); }
+}
+
+// ==================== 应急指挥调度 ====================
+function loadAdminDispatch() {
+    // 资源概览
+    const resRes = apiGetResources();
+    if (resRes.code === 200) {
+        const r = resRes.data;
+        document.getElementById('dispatch-resources').innerHTML = `
+            <div class="resource-item"><div class="icon">🔧</div><div class="val">${r.pumps}</div><div class="lbl">排水泵（台）</div></div>
+            <div class="resource-item"><div class="icon">🚛</div><div class="val">${r.rescue_vehicles}</div><div class="lbl">救援车辆</div></div>
+            <div class="resource-item"><div class="icon">🚤</div><div class="val">${r.boats}</div><div class="lbl">冲锋舟</div></div>
+            <div class="resource-item"><div class="icon">🧱</div><div class="val">${r.sandbags}</div><div class="lbl">沙袋（个）</div></div>
+            <div class="resource-item"><div class="icon">🦺</div><div class="val">${r.life_jackets}</div><div class="lbl">救生衣</div></div>
+            <div class="resource-item"><div class="icon">📻</div><div class="val">${r.communication_sets}</div><div class="lbl">通信设备</div></div>
+            <div class="resource-item"><div class="icon">💰</div><div class="val">${r.emergency_funds}</div><div class="lbl">应急资金</div></div>
+            <div class="resource-item"><div class="icon">👥</div><div class="val">85</div><div class="lbl">在岗人员</div></div>
+            <div class="resource-item"><div class="icon">🚨</div><div class="val">4</div><div class="lbl">活跃事件</div></div>`;
+    }
+
+    // 应急事件
+    const evtRes = apiGetEmergencyEvents();
+    if (evtRes.code === 200) {
+        const levelMap = { critical: '严重', warning: '关注', info: '提示' };
+        const levelBadge = { critical: 'badge-red', warning: 'badge-orange', info: 'badge-yellow' };
+        const statusMap = { active: '🚨 正在处置', monitoring: '👀 持续监控', resolved: '✅ 已解决' };
+        document.getElementById('dispatch-events').innerHTML = evtRes.data.map(e => `
+            <div class="event-card ${e.level}">
+                <div class="event-header"><div class="event-title">${e.title} <span class="badge ${levelBadge[e.level]}">${levelMap[e.level]}</span></div><div style="font-size:12px;color:#999;">${statusMap[e.status]||e.status} | ${e.started_at}</div></div>
+                <div style="margin-top:8px;font-size:14px;color:#333;">📍 ${e.location}</div>
+                <div style="font-size:13px;color:#666;margin-top:4px;">${e.description}</div>
+                <div style="display:flex;gap:8px;margin-top:8px;font-size:12px;">
+                    <div style="padding:4px 10px;background:#e3f2fd;border-radius:6px;color:#1976d2;">积水：${e.water_depth}</div>
+                    <div style="padding:4px 10px;background:#fce4ec;border-radius:6px;color:#c62828;">影响面积：${e.affected_area}</div>
+                    <div style="padding:4px 10px;background:#fff3e0;border-radius:6px;color:#e65100;">影响人群：约${e.affected_people}人</div>
+                    ${e.teams.length > 0 ? `<div style="padding:4px 10px;background:#e8f5e9;border-radius:6px;color:#2e7d32;">已派遣：${e.teams.join(', ')}</div>` : ''}
+                </div>
+            </div>`).join('');
+    }
+
+    // 救援力量
+    const teamRes = apiGetRescueTeams();
+    if (teamRes.code === 200) {
+        const statusMap = { dispatched: '已出动', standby: '待命', active: '值班中' };
+        const statusColor = { dispatched: '#c62828', standby: '#ff9800', active: '#2196f3' };
+        const typeIcon = { '排水': '🔧', '消防救援': '🚒', '交通管制': '👮', '指挥协调': '🎯', '社区协助': '🙋' };
+        document.getElementById('dispatch-teams').innerHTML = teamRes.data.map(t => `
+            <div class="team-card">
+                <div class="team-icon" style="background:${statusColor[t.status]||'#999'}20;color:${statusColor[t.status]||'#999'};">${typeIcon[t.type]||'👥'}</div>
+                <div class="team-info">
+                    <div class="team-name">${t.name} <span class="badge badge-${t.status==='dispatched'?'red':t.status==='standby'?'orange':'green'}" style="margin-left:8px;">${statusMap[t.status]}</span></div>
+                    <div class="team-detail">队长：${t.captain} | ${t.personnel}人 | ${t.location} | 📞 ${t.phone}</div>
+                    <div class="team-detail" style="margin-top:4px;">装备：${t.equipment}</div>
+                </div>
+                ${t.status === 'standby' ? `<button class="btn btn-danger btn-sm" onclick="quickDispatchTeam('${t.name}')">派遣</button>` : ''}
+            </div>`).join('');
+    }
+
+    // 调度指令下拉框
+    if (evtRes.code === 200) {
+        const sel = document.getElementById('dispatch-event');
+        if (sel && !sel.options.length) { sel.innerHTML = evtRes.data.map(e => `<option value="${e.id}">${e.title}</option>`).join(''); }
+    }
+    if (teamRes.code === 200) {
+        const sel = document.getElementById('dispatch-team');
+        if (sel && !sel.options.length) { sel.innerHTML = teamRes.data.map(t => `<option value="${t.name}">${t.name}</option>`).join(''); }
+    }
+
+    // 已发布调度指令
+    const cmdRes = apiGetDispatchCommands();
+    if (cmdRes.code === 200) {
+        const statusMap = { '执行中': 'badge-orange', '已执行': 'badge-green', '持续监控': 'badge-yellow' };
+        document.getElementById('dispatch-cmd-list').innerHTML = cmdRes.data.length === 0 ? '<div style="text-align:center;padding:20px;color:#999;">暂无调度指令</div>' :
+            cmdRes.data.map(c => `<div class="dispatch-cmd">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><strong>${c.command}</strong></div>
+                    <span class="badge ${statusMap[c.status]||'badge-green'}">${c.status}</span>
+                </div>
+                <div style="margin-top:4px;font-size:12px;color:#999;">执行单位：${c.team} | 发布人：${c.issued_by} | ${c.issued_at}</div>
+            </div>`).join('');
+    }
+}
+
+function issueDispatchCommand() {
+    const eventId = parseInt(document.getElementById('dispatch-event').value);
+    const command = document.getElementById('dispatch-command').value;
+    const team = document.getElementById('dispatch-team').value;
+    if (!command || !team) { showToast('请填写指令内容并选择执行单位'); return; }
+    const res = apiIssueDispatchCommand(eventId, command, team);
+    if (res.code === 200) { showToast('调度指令已发布！'); document.getElementById('dispatch-command').value = ''; loadAdminDispatch(); }
+}
+
+function quickDispatchTeam(teamName) {
+    const eventId = parseInt(document.getElementById('dispatch-event').value) || 1;
+    const command = `紧急派遣${teamName}前往内涝现场支援`;
+    const res = apiIssueDispatchCommand(eventId, command, teamName);
+    if (res.code === 200) { showToast('已派遣 ' + teamName + '！'); loadAdminDispatch(); }
+}
 
 // ==================== 初始化 ====================
 initFloodData();
