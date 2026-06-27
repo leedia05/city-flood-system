@@ -25,6 +25,46 @@
         .role-tab.active.admin { border-color: #d32f2f; background: #ffebee; color: #d32f2f; }
         .role-tab.active.user { border-color: #1565c0; background: #e3f2fd; color: #1565c0; }
 
+        /* 注册流程样式 */
+        .login-link-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; }
+        .login-link-row a { color: #2a5298; cursor: pointer; text-decoration: none; }
+        .login-link-row a:hover { text-decoration: underline; }
+        #register-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+        #register-overlay.show { display: flex; }
+        .register-box { background: #fff; border-radius: 12px; padding: 40px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .register-box h2 { text-align: center; color: #1e3c72; font-size: 20px; margin-bottom: 8px; }
+        .register-box .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 24px; }
+        .register-step { display: none; }
+        .register-step.active { display: block; }
+        .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+        .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; background: #e0e0e0; color: #999; transition: all 0.3s; }
+        .step-dot.active { background: #2a5298; color: #fff; }
+        .step-dot.done { background: #4caf50; color: #fff; }
+        .step-line { width: 40px; height: 2px; background: #e0e0e0; align-self: center; transition: background 0.3s; }
+        .step-line.done { background: #4caf50; }
+        .register-box input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; transition: border 0.3s; box-sizing: border-box; }
+        .register-box input:focus { border-color: #2a5298; }
+        .register-box label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+        .code-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .code-row input { flex: 1; margin-bottom: 0; }
+        .btn-code { white-space: nowrap; padding: 12px 20px; background: #2a5298; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background 0.3s; }
+        .btn-code:hover { background: #1e3c72; }
+        .btn-code:disabled { background: #bbb; cursor: not-allowed; }
+        .register-box button.btn-full { width: 100%; padding: 12px; background: #2a5298; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        .register-box button.btn-full:hover { background: #1e3c72; }
+        .register-box .btn-back { width: 100%; padding: 10px; background: #f5f5f5; color: #666; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; }
+        .register-box .btn-back:hover { background: #eee; }
+        .register-tips { background: #e3f2fd; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1565c0; line-height: 1.6; }
+        .register-tips strong { display: block; margin-bottom: 4px; }
+        .phone-preview { text-align: center; font-size: 15px; color: #333; margin-bottom: 16px; padding: 12px; background: #f5f7fa; border-radius: 8px; }
+        .phone-preview .phone-num { font-weight: bold; color: #2a5298; font-size: 18px; }
+        .code-input-box { text-align: center; margin-bottom: 20px; }
+        .code-input-box input { text-align: center; font-size: 24px; letter-spacing: 8px; width: 200px; }
+        .pwd-strength { height: 4px; border-radius: 2px; margin: -10px 0 16px; transition: background 0.3s; }
+        .pwd-strength.weak { background: #f44336; }
+        .pwd-strength.medium { background: #ff9800; }
+        .pwd-strength.strong { background: #4caf50; }
+
         #main-app { display: none; }
         .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; padding-top: 20px; z-index: 100; }
         .sidebar.admin-sidebar { background: #1e3c72; }
@@ -267,12 +307,78 @@
             <div class="role-tab admin active" onclick="switchLoginRole('admin')">管理员登录</div>
             <div class="role-tab user" onclick="switchLoginRole('user')">用户登录</div>
         </div>
-        <input type="text" id="login-username" placeholder="用户名" value="admin">
-        <input type="password" id="login-password" placeholder="密码" value="admin123">
+        <input type="text" id="login-username" placeholder="用户名 / 手机号" value="admin" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+        <input type="password" id="login-password" placeholder="密码" value="admin123" onkeydown="if(event.key==='Enter')doLogin()">
         <button onclick="doLogin()">登 录</button>
+        <div class="login-link-row">
+            <a onclick="showRegister()">没有账号？立即注册</a>
+            <a onclick="showForgotPassword()">忘记密码？</a>
+        </div>
         <div class="login-hint">
             <div class="admin-hint">管理员: <span>admin / admin123</span> 或 <span>manager / manager123</span></div>
             <div class="user-hint">用户: <span>user / user123</span> 或 <span>citizen01 / citizen123</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ================== 注册/找回密码弹窗 ================== -->
+<div id="register-overlay">
+    <div class="register-box">
+        <h2 id="register-title">用户注册</h2>
+        <p class="subtitle" id="register-subtitle">注册后可查看实时积水数据、接收预警、上报积水信息</p>
+        <div class="step-indicator" id="step-indicator">
+            <div class="step-dot active" id="dot-1">1</div>
+            <div class="step-line" id="line-1"></div>
+            <div class="step-dot" id="dot-2">2</div>
+            <div class="step-line" id="line-2"></div>
+            <div class="step-dot" id="dot-3">3</div>
+        </div>
+        <!-- 步骤1：输入手机号 -->
+        <div class="register-step active" id="reg-step-1">
+            <div class="register-tips">
+                <strong>📱 第一步：验证手机号</strong>
+                请输入您的手机号，系统将发送6位验证码到该手机号
+            </div>
+            <label>手机号</label>
+            <input type="tel" id="reg-phone" placeholder="请输入11位手机号" maxlength="11" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <div class="code-row">
+                <input type="text" id="reg-code" placeholder="输入6位验证码" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                <button class="btn-code" id="btn-send-code" onclick="sendVerifyCode()">获取验证码</button>
+            </div>
+            <button class="btn-full" onclick="verifyCode()">下一步</button>
+            <button class="btn-back" onclick="closeRegister()">返回登录</button>
+        </div>
+        <!-- 步骤2：验证码校验 -->
+        <div class="register-step" id="reg-step-2">
+            <div class="register-tips">
+                <strong>🔑 第二步：输入验证码</strong>
+                验证码已发送至您的手机，请输入收到的6位验证码
+            </div>
+            <div class="phone-preview">验证手机：<span class="phone-num" id="phone-display">-</span></div>
+            <div class="code-input-box">
+                <input type="text" id="reg-code-verify" placeholder="------" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="font-size:24px;letter-spacing:8px;text-align:center;width:200px;">
+            </div>
+            <button class="btn-full" onclick="confirmVerifyCode()">验证</button>
+            <div style="text-align:center;margin-top:12px;">
+                <a style="color:#2a5298;cursor:pointer;font-size:13px;" id="resend-link" onclick="resendCode()">未收到？重新发送验证码</a>
+            </div>
+            <button class="btn-back" onclick="backToStep(1)">上一步</button>
+        </div>
+        <!-- 步骤3：设置账号密码 -->
+        <div class="register-step" id="reg-step-3">
+            <div class="register-tips">
+                <strong>✅ 第三步：设置账号信息</strong>
+                手机号验证成功！请设置您的用户名和登录密码
+            </div>
+            <label>用户名</label>
+            <input type="text" id="reg-username" placeholder="3-20位字符，字母/数字/下划线">
+            <label>登录密码</label>
+            <input type="password" id="reg-password" placeholder="6-20位密码" oninput="checkPwdStrength(this.value)">
+            <div class="pwd-strength" id="pwd-strength" style="background:#e0e0e0;"></div>
+            <label>确认密码</label>
+            <input type="password" id="reg-password2" placeholder="请再次输入密码">
+            <button class="btn-full" onclick="doRegister()">完成注册</button>
+            <button class="btn-back" onclick="backToStep(2)">上一步</button>
         </div>
     </div>
 </div>
@@ -465,7 +571,33 @@ function showModal(html) { document.getElementById('modal-content').innerHTML = 
 function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); document.getElementById('modal-content').classList.remove('wide'); if (window._detailCamTimer) clearInterval(window._detailCamTimer); }
 
 // ==================== 本地API模拟 ====================
-function apiLogin(username, password) { const user = DB.users.find(u => u.username === username && u.password === password); if (user) return { code: 200, message: '登录成功', data: { user_id: user.id, username: user.username, role: user.role } }; return { code: 401, message: '用户名或密码错误' }; }
+function apiLogin(username, password) {
+    // 支持用户名或手机号登录
+    const user = DB.users.find(u => (u.username === username || u.phone === username) && u.password === password);
+    if (user) {
+        DB.logs.push({ id: DB.nextLogId++, user_id: user.id, username: user.username, action: '登录', detail: (user.role === 'admin' ? '管理员' : '用户') + ' ' + user.username + ' 登录系统', ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+        return { code: 200, message: '登录成功', data: { user_id: user.id, username: user.username, role: user.role } };
+    }
+    return { code: 401, message: '用户名/手机号或密码错误' };
+}
+// 发送短信验证码（模拟）
+function apiSendVerifyCode(phone) {
+    if (!/^1[3-9]\d{9}$/.test(phone)) return { code: 400, message: '手机号格式不正确' };
+    // 检查手机号是否已注册（注册时检查）
+    return { code: 200, message: '验证码已发送', data: { code: String(Math.floor(100000 + Math.random() * 900000)) } };
+}
+// 注册新用户
+function apiRegister(phone, username, password) {
+    if (!phone || !username || !password) return { code: 400, message: '信息不完整' };
+    if (DB.users.find(u => u.phone === phone)) return { code: 400, message: '该手机号已注册' };
+    if (DB.users.find(u => u.username === username)) return { code: 400, message: '用户名已存在' };
+    if (username.length < 3) return { code: 400, message: '用户名至少3个字符' };
+    if (password.length < 6) return { code: 400, message: '密码至少6位' };
+    const newUser = { id: DB.nextUserId++, username: username, password: password, role: 'user', phone: phone, email: '', created_at: formatTime(new Date()) };
+    DB.users.push(newUser);
+    DB.logs.push({ id: DB.nextLogId++, user_id: newUser.id, username: newUser.username, action: '注册', detail: '新用户注册：' + username + '（手机：' + phone + '）', ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+    return { code: 200, message: '注册成功', data: { user_id: newUser.id, username: newUser.username, role: 'user' } };
+}
 function apiGetDevices() { return { code: 200, data: DB.devices.map(d => ({ ...d })) }; }
 function apiGetRiskAssess() { const devices = DB.devices.map(d => { const data = DB.flood_data.filter(f => f.device_id === d.device_id); const latest = data[data.length - 1] || { water_level: 0, risk_level: 'green', collect_time: '-' }; return { device_id: d.device_id, name: d.name, longitude: d.longitude, latitude: d.latitude, location: d.location, water_level: latest.water_level, risk_level: latest.risk_level, collect_time: latest.collect_time }; }); const stats = { green: 0, yellow: 0, orange: 0, red: 0 }; devices.forEach(d => { if (stats[d.risk_level] !== undefined) stats[d.risk_level]++; }); return { code: 200, data: { devices, stats } }; }
 function apiGetAlerts() { return { code: 200, data: DB.alerts.slice(0, 50).map(a => ({ ...a })) }; }
@@ -558,11 +690,190 @@ function switchLoginRole(role) {
 }
 
 function doLogin() {
-    const username = document.getElementById('login-username').value;
+    const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
+    if (!username || !password) { showToast('请输入用户名和密码'); return; }
     const res = apiLogin(username, password);
     if (res.code === 200) { currentUser = res.data; document.getElementById('login-page').style.display = 'none'; document.getElementById('main-app').style.display = 'block'; initUI(res.data); showToast('登录成功，欢迎 ' + res.data.username); }
     else { showToast(res.message); }
+}
+
+// ==================== 注册流程 ====================
+let regMode = 'register'; // 'register' or 'forgot'
+let regPhone = '';
+let regVerifyCode = '';
+let regCountdownTimer = null;
+
+function showRegister() {
+    regMode = 'register';
+    document.getElementById('register-title').textContent = '用户注册';
+    document.getElementById('register-subtitle').textContent = '注册后可查看实时积水数据、接收预警、上报积水信息';
+    document.getElementById('step-indicator').style.display = 'flex';
+    resetRegisterForm();
+    document.getElementById('register-overlay').classList.add('show');
+}
+
+function showForgotPassword() {
+    regMode = 'forgot';
+    document.getElementById('register-title').textContent = '找回密码';
+    document.getElementById('register-subtitle').textContent = '通过手机号验证后重置登录密码';
+    document.getElementById('step-indicator').style.display = 'flex';
+    resetRegisterForm();
+    document.getElementById('register-overlay').classList.add('show');
+}
+
+function closeRegister() {
+    document.getElementById('register-overlay').classList.remove('show');
+    if (regCountdownTimer) { clearInterval(regCountdownTimer); regCountdownTimer = null; }
+    resetRegisterForm();
+}
+
+function resetRegisterForm() {
+    regPhone = ''; regVerifyCode = '';
+    if (regCountdownTimer) { clearInterval(regCountdownTimer); regCountdownTimer = null; }
+    document.getElementById('reg-phone').value = '';
+    document.getElementById('reg-code').value = '';
+    document.getElementById('reg-code-verify').value = '';
+    document.getElementById('reg-username').value = '';
+    document.getElementById('reg-password').value = '';
+    document.getElementById('reg-password2').value = '';
+    document.getElementById('pwd-strength').className = 'pwd-strength';
+    document.getElementById('pwd-strength').style.background = '#e0e0e0';
+    const btn = document.getElementById('btn-send-code');
+    btn.disabled = false; btn.textContent = '获取验证码';
+    goToStep(1);
+}
+
+function goToStep(step) {
+    for (let i = 1; i <= 3; i++) {
+        document.getElementById('reg-step-' + i).classList.remove('active');
+    }
+    document.getElementById('reg-step-' + step).classList.add('active');
+    // Update step indicator
+    for (let i = 1; i <= 3; i++) {
+        const dot = document.getElementById('dot-' + i);
+        dot.classList.remove('active', 'done');
+        if (i < step) { dot.classList.add('done'); dot.innerHTML = '&#10003;'; }
+        else if (i === step) { dot.classList.add('active'); dot.textContent = i; }
+        else { dot.textContent = i; }
+    }
+    document.getElementById('line-1').classList.toggle('done', step > 1);
+    document.getElementById('line-2').classList.toggle('done', step > 2);
+}
+
+function sendVerifyCode() {
+    const phone = document.getElementById('reg-phone').value.trim();
+    if (!phone) { showToast('请输入手机号'); return; }
+    if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确'); return; }
+    if (regMode === 'register' && DB.users.find(u => u.phone === phone)) { showToast('该手机号已注册，请直接登录'); return; }
+    if (regMode === 'forgot' && !DB.users.find(u => u.phone === phone)) { showToast('该手机号未注册，请先注册'); return; }
+    const res = apiSendVerifyCode(phone);
+    if (res.code === 200) {
+        regPhone = phone;
+        regVerifyCode = res.data.code;
+        showToast('验证码已发送至 ' + phone + '（演示码：' + regVerifyCode + '）');
+        startCountdown();
+    } else {
+        showToast(res.message);
+    }
+}
+
+function resendCode() {
+    if (regCountdownTimer) { showToast('请稍候再试'); return; }
+    const res = apiSendVerifyCode(regPhone);
+    if (res.code === 200) {
+        regVerifyCode = res.data.code;
+        showToast('验证码已重新发送（演示码：' + regVerifyCode + '）');
+        startCountdown();
+    }
+}
+
+function startCountdown() {
+    let seconds = 60;
+    const btn = document.getElementById('btn-send-code');
+    btn.disabled = true;
+    btn.textContent = seconds + '秒后重发';
+    regCountdownTimer = setInterval(() => {
+        seconds--;
+        btn.textContent = seconds + '秒后重发';
+        if (seconds <= 0) {
+            clearInterval(regCountdownTimer); regCountdownTimer = null;
+            btn.disabled = false; btn.textContent = '重新获取';
+        }
+    }, 1000);
+}
+
+function verifyCode() {
+    const phone = document.getElementById('reg-phone').value.trim();
+    const code = document.getElementById('reg-code').value.trim();
+    if (!phone) { showToast('请输入手机号'); return; }
+    if (!code) { showToast('请输入验证码'); return; }
+    if (!regVerifyCode) { showToast('请先获取验证码'); return; }
+    if (code !== regVerifyCode) { showToast('验证码错误'); return; }
+    regPhone = phone;
+    document.getElementById('phone-display').textContent = phone.substring(0,3) + '****' + phone.substring(7);
+    goToStep(2);
+}
+
+function confirmVerifyCode() {
+    const code = document.getElementById('reg-code-verify').value.trim();
+    if (!code) { showToast('请输入验证码'); return; }
+    if (code !== regVerifyCode) { showToast('验证码错误，请重新输入'); return; }
+    showToast('手机号验证成功！');
+    goToStep(3);
+}
+
+function backToStep(step) { goToStep(step); }
+
+function checkPwdStrength(pwd) {
+    const bar = document.getElementById('pwd-strength');
+    if (!pwd) { bar.className = 'pwd-strength'; bar.style.background = '#e0e0e0'; return; }
+    let score = 0;
+    if (pwd.length >= 6) score++;
+    if (pwd.length >= 10) score++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
+    if (/\d/.test(pwd)) score++;
+    if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+    if (score <= 2) { bar.className = 'pwd-strength weak'; }
+    else if (score <= 3) { bar.className = 'pwd-strength medium'; }
+    else { bar.className = 'pwd-strength strong'; }
+}
+
+function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const password2 = document.getElementById('reg-password2').value;
+    if (!username) { showToast('请输入用户名'); return; }
+    if (username.length < 3) { showToast('用户名至少3个字符'); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) { showToast('用户名只能包含字母、数字、下划线'); return; }
+    if (!password) { showToast('请输入密码'); return; }
+    if (password.length < 6) { showToast('密码至少6位'); return; }
+    if (password !== password2) { showToast('两次密码输入不一致'); return; }
+    if (regMode === 'register') {
+        const res = apiRegister(regPhone, username, password);
+        if (res.code === 200) {
+            showToast('注册成功！请使用手机号或用户名登录');
+            closeRegister();
+            // 自动填充登录信息
+            switchLoginRole('user');
+            document.getElementById('login-username').value = username;
+            document.getElementById('login-password').value = '';
+        } else {
+            showToast(res.message);
+        }
+    } else {
+        // 找回密码：重置密码
+        const user = DB.users.find(u => u.phone === regPhone);
+        if (user) {
+            user.password = password;
+            DB.logs.push({ id: DB.nextLogId++, user_id: user.id, username: user.username, action: '重置密码', detail: '用户通过手机验证重置密码', ip_address: '127.0.0.1', created_at: formatTime(new Date()) });
+            showToast('密码重置成功！请使用新密码登录');
+            closeRegister();
+            switchLoginRole('user');
+            document.getElementById('login-username').value = user.username;
+            document.getElementById('login-password').value = '';
+        }
+    }
 }
 
 function doLogout() { currentUser = null; document.getElementById('login-page').style.display = 'flex'; document.getElementById('main-app').style.display = 'none'; }
