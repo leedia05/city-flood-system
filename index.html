@@ -4,60 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>基于AI的城市内涝智能监测评估系统 - 宜春市</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+        body { font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
 
-        #login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
-        .login-box { background: #fff; padding: 40px; border-radius: 12px; width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-        .login-box h1 { text-align: center; color: #1e3c72; font-size: 20px; margin-bottom: 8px; }
-        .login-box p { text-align: center; color: #999; font-size: 13px; margin-bottom: 24px; }
-        .login-box input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; transition: border 0.3s; }
-        .login-box input:focus { border-color: #2a5298; }
-        .login-box button { width: 100%; padding: 12px; background: #2a5298; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
-        .login-box button:hover { background: #1e3c72; }
-        .login-hint { text-align: center; margin-top: 16px; font-size: 12px; color: #999; line-height: 1.8; }
+        /* ==================== 登录页面 ==================== */
+        #login-page {
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5b 30%, #1e3c72 60%, #2a5298 100%);
+            position: relative; overflow: hidden;
+        }
+        /* 动态雨滴背景 */
+        #login-page::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 20% 50%, rgba(33,150,243,0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 30%, rgba(0,188,212,0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(63,81,181,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .rain-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+        .rain-drop {
+            position: absolute; width: 2px; background: linear-gradient(transparent, rgba(174,213,255,0.4));
+            animation: rainFall linear infinite;
+        }
+        @keyframes rainFall {
+            0% { transform: translateY(-100px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+            50% { transform: translate(-50%,-50%) scale(1.8); opacity: 0.1; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 0.3; }
+        }
+        .flood-marker-icon { background: none !important; border: none !important; }
+        .leaflet-top.leaflet-center { left: 50%; transform: translateX(-50%); }
+        .map-title-control { background: none !important; border: none !important; box-shadow: none !important; }
+        /* 水波纹效果 */
+        .water-wave {
+            position: absolute; bottom: 0; left: 0; width: 200%; height: 120px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath fill='rgba(33,150,243,0.08)' d='M0,60 C150,100 350,20 600,60 C850,100 1050,20 1200,60 L1200,120 L0,120 Z'/%3E%3C/svg%3E") repeat-x;
+            animation: waveMove 8s linear infinite;
+        }
+        @keyframes waveMove { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        .login-wrapper { position: relative; z-index: 10; display: flex; align-items: center; gap: 60px; max-width: 900px; width: 90%; }
+
+        /* 左侧品牌区 */
+        .login-brand { flex: 1; color: #fff; }
+        .login-brand .brand-icon {
+            width: 72px; height: 72px; border-radius: 18px;
+            background: linear-gradient(135deg, #2196f3, #00bcd4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(33,150,243,0.4);
+        }
+        .login-brand h1 {
+            font-size: 32px; font-weight: 800; line-height: 1.35; margin-bottom: 12px;
+            background: linear-gradient(135deg, #64b5f6, #4fc3f7, #80deea);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .login-brand .brand-subtitle {
+            font-size: 15px; color: rgba(255,255,255,0.6); margin-bottom: 32px; line-height: 1.7;
+        }
+        .login-brand .feature-list { list-style: none; }
+        .login-brand .feature-list li {
+            display: flex; align-items: center; gap: 10px; font-size: 14px;
+            color: rgba(255,255,255,0.75); margin-bottom: 14px;
+        }
+        .login-brand .feature-list li::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+            background: #4fc3f7; box-shadow: 0 0 8px rgba(79,195,247,0.6);
+        }
+
+        /* 右侧登录卡片 */
+        .login-card {
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+            padding: 40px 36px; border-radius: 20px; width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+        }
+        .login-card .card-title { font-size: 22px; font-weight: 700; color: #1a237e; text-align: center; margin-bottom: 6px; }
+        .login-card .card-subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 28px; }
+        .login-card input {
+            width: 100%; padding: 13px 16px; border: 2px solid #e8eaf6; border-radius: 10px;
+            font-size: 14px; margin-bottom: 14px; outline: none; transition: all 0.3s;
+            background: #f8f9fc;
+        }
+        .login-card input:focus { border-color: #2196f3; background: #fff; box-shadow: 0 0 0 3px rgba(33,150,243,0.1); }
+        .login-card .login-btn {
+            width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; margin-top: 4px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff;
+            box-shadow: 0 4px 16px rgba(30,60,114,0.3);
+        }
+        .login-card .login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(30,60,114,0.4); }
+        .login-hint {
+            text-align: center; margin-top: 20px; padding: 12px; background: #f5f7fa; border-radius: 10px;
+            font-size: 12px; color: #999; line-height: 1.9;
+        }
         .login-hint span { font-weight: bold; }
         .login-hint .admin-hint { color: #d32f2f; }
         .login-hint .user-hint { color: #1565c0; }
-        .role-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-        .role-tab { flex: 1; padding: 10px; text-align: center; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
-        .role-tab.active.admin { border-color: #d32f2f; background: #ffebee; color: #d32f2f; }
-        .role-tab.active.user { border-color: #1565c0; background: #e3f2fd; color: #1565c0; }
+        .role-tabs { display: flex; gap: 8px; margin-bottom: 20px; background: #f0f2f8; border-radius: 10px; padding: 4px; }
+        .role-tab {
+            flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: all 0.3s; color: #999; border: none;
+        }
+        .role-tab.active.admin { background: #fff; color: #d32f2f; box-shadow: 0 2px 8px rgba(211,47,47,0.15); }
+        .role-tab.active.user { background: #fff; color: #1565c0; box-shadow: 0 2px 8px rgba(21,101,192,0.15); }
 
         /* 注册流程样式 */
-        .login-link-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; }
-        .login-link-row a { color: #2a5298; cursor: pointer; text-decoration: none; }
+        .login-link-row { display: flex; justify-content: space-between; margin-top: 16px; font-size: 13px; }
+        .login-link-row a { color: #2196f3; cursor: pointer; text-decoration: none; font-weight: 500; }
         .login-link-row a:hover { text-decoration: underline; }
-        #register-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+        #register-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,27,42,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         #register-overlay.show { display: flex; }
-        .register-box { background: #fff; border-radius: 12px; padding: 40px; width: 420px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        .register-box h2 { text-align: center; color: #1e3c72; font-size: 20px; margin-bottom: 8px; }
+        .register-box { background: #fff; border-radius: 20px; padding: 40px 36px; width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .register-box h2 { text-align: center; color: #1a237e; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
         .register-box .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 24px; }
         .register-step { display: none; }
         .register-step.active { display: block; }
         .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
-        .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; background: #e0e0e0; color: #999; transition: all 0.3s; }
-        .step-dot.active { background: #2a5298; color: #fff; }
-        .step-dot.done { background: #4caf50; color: #fff; }
-        .step-line { width: 40px; height: 2px; background: #e0e0e0; align-self: center; transition: background 0.3s; }
-        .step-line.done { background: #4caf50; }
-        .register-box input { width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 16px; outline: none; transition: border 0.3s; box-sizing: border-box; }
-        .register-box input:focus { border-color: #2a5298; }
-        .register-box label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
-        .code-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; background: #e8eaf6; color: #999; transition: all 0.3s; }
+        .step-dot.active { background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; box-shadow: 0 4px 12px rgba(30,60,114,0.3); }
+        .step-dot.done { background: linear-gradient(135deg, #43a047, #66bb6a); color: #fff; }
+        .step-line { width: 40px; height: 3px; background: #e8eaf6; align-self: center; transition: background 0.3s; border-radius: 2px; }
+        .step-line.done { background: #66bb6a; }
+        .register-box input { width: 100%; padding: 12px 16px; border: 2px solid #e8eaf6; border-radius: 10px; font-size: 14px; margin-bottom: 14px; outline: none; transition: all 0.3s; box-sizing: border-box; background: #f8f9fc; }
+        .register-box input:focus { border-color: #2196f3; background: #fff; box-shadow: 0 0 0 3px rgba(33,150,243,0.1); }
+        .register-box label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .code-row { display: flex; gap: 10px; margin-bottom: 14px; }
         .code-row input { flex: 1; margin-bottom: 0; }
-        .btn-code { white-space: nowrap; padding: 12px 20px; background: #2a5298; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: background 0.3s; }
-        .btn-code:hover { background: #1e3c72; }
-        .btn-code:disabled { background: #bbb; cursor: not-allowed; }
-        .register-box button.btn-full { width: 100%; padding: 12px; background: #2a5298; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
-        .register-box button.btn-full:hover { background: #1e3c72; }
-        .register-box .btn-back { width: 100%; padding: 10px; background: #f5f5f5; color: #666; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; }
+        .btn-code { white-space: nowrap; padding: 12px 20px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s; box-shadow: 0 2px 8px rgba(30,60,114,0.2); }
+        .btn-code:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(30,60,114,0.3); }
+        .btn-code:disabled { background: #bbb; cursor: not-allowed; transform: none; box-shadow: none; }
+        .register-box button.btn-full { width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; box-shadow: 0 4px 16px rgba(30,60,114,0.3); }
+        .register-box button.btn-full:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(30,60,114,0.4); }
+        .register-box .btn-back { width: 100%; padding: 10px; background: #f5f7fa; color: #666; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; margin-top: 10px; }
         .register-box .btn-back:hover { background: #eee; }
-        .register-tips { background: #e3f2fd; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1565c0; line-height: 1.6; }
+        .register-tips { background: #e3f2fd; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1565c0; line-height: 1.6; border-left: 3px solid #2196f3; }
         .register-tips strong { display: block; margin-bottom: 4px; }
-        .phone-preview { text-align: center; font-size: 15px; color: #333; margin-bottom: 16px; padding: 12px; background: #f5f7fa; border-radius: 8px; }
-        .phone-preview .phone-num { font-weight: bold; color: #2a5298; font-size: 18px; }
+        .phone-preview { text-align: center; font-size: 15px; color: #333; margin-bottom: 16px; padding: 12px; background: #f5f7fa; border-radius: 10px; }
+        .phone-preview .phone-num { font-weight: bold; color: #1e3c72; font-size: 18px; }
         .code-input-box { text-align: center; margin-bottom: 20px; }
         .code-input-box input { text-align: center; font-size: 24px; letter-spacing: 8px; width: 200px; }
         .pwd-strength { height: 4px; border-radius: 2px; margin: -10px 0 16px; transition: background 0.3s; }
@@ -66,36 +158,41 @@
         .pwd-strength.strong { background: #4caf50; }
 
         #main-app { display: none; }
-        .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; padding-top: 20px; z-index: 100; }
-        .sidebar.admin-sidebar { background: #1e3c72; }
-        .sidebar.user-sidebar { background: #1565c0; }
-        .sidebar h2 { color: #fff; font-size: 15px; text-align: center; margin-bottom: 8px; padding: 0 16px; }
-        .sidebar .city-name { text-align: center; color: #90caf9; font-size: 12px; margin-bottom: 20px; }
-        .sidebar .role-badge { display: block; margin: 0 16px 20px; padding: 8px 12px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: bold; }
-        .role-badge.admin { background: rgba(211,47,47,0.2); color: #ff8a80; border: 1px solid rgba(211,47,47,0.4); }
-        .role-badge.user { background: rgba(255,255,255,0.15); color: #90caf9; border: 1px solid rgba(255,255,255,0.2); }
-        .sidebar nav a { display: block; padding: 12px 24px; color: #a0b4d8; text-decoration: none; font-size: 14px; transition: all 0.3s; border-left: 3px solid transparent; cursor: pointer; }
-        .sidebar nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .sidebar.admin-sidebar nav a.active { background: rgba(255,255,255,0.15); color: #fff; border-left-color: #4fc3f7; }
-        .sidebar.user-sidebar nav a.active { background: rgba(255,255,255,0.15); color: #fff; border-left-color: #80d8ff; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 230px; height: 100vh; padding-top: 24px; z-index: 100; transition: box-shadow 0.3s; }
+        .sidebar.admin-sidebar { background: linear-gradient(180deg, #0d1b2a 0%, #1b3a5b 100%); box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
+        .sidebar.user-sidebar { background: linear-gradient(180deg, #0d47a1 0%, #1565c0 100%); box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
+        .sidebar .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 20px; }
+        .sidebar .sidebar-logo .logo-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #2196f3, #00bcd4); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .sidebar .sidebar-logo .logo-text { color: #fff; font-size: 13px; font-weight: 700; line-height: 1.3; }
+        .sidebar h2 { color: #fff; font-size: 14px; text-align: center; margin-bottom: 4px; padding: 0 16px; }
+        .sidebar .city-name { text-align: center; color: rgba(255,255,255,0.4); font-size: 11px; margin-bottom: 16px; }
+        .sidebar .role-badge { display: block; margin: 0 16px 20px; padding: 8px 12px; border-radius: 10px; text-align: center; font-size: 12px; font-weight: bold; }
+        .role-badge.admin { background: rgba(211,47,47,0.15); color: #ff8a80; border: 1px solid rgba(211,47,47,0.3); }
+        .role-badge.user { background: rgba(255,255,255,0.1); color: #90caf9; border: 1px solid rgba(255,255,255,0.15); }
+        .sidebar nav a { display: block; padding: 11px 24px; color: rgba(255,255,255,0.55); text-decoration: none; font-size: 13px; transition: all 0.25s; border-left: 3px solid transparent; cursor: pointer; }
+        .sidebar nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .sidebar.admin-sidebar nav a.active { background: rgba(33,150,243,0.15); color: #fff; border-left-color: #4fc3f7; }
+        .sidebar.user-sidebar nav a.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: #80d8ff; }
         .sidebar .user-info { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 24px; }
-        .sidebar .user-info p { color: #a0b4d8; font-size: 12px; margin-bottom: 8px; }
-        .sidebar .user-info button { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .sidebar .user-info p { color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 8px; }
+        .sidebar .user-info button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .sidebar .user-info button:hover { background: rgba(255,255,255,0.2); }
 
-        .main-content { margin-left: 220px; padding: 24px; min-height: 100vh; }
+        .main-content { margin-left: 230px; padding: 28px; min-height: 100vh; }
         .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-        .page-header h1 { font-size: 22px; color: #333; }
+        .page-header h1 { font-size: 24px; color: #1a237e; font-weight: 700; }
 
-        .admin-banner { background: linear-gradient(90deg, #d32f2f, #c62828); color: #fff; padding: 8px 24px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-        .user-banner { background: linear-gradient(90deg, #1565c0, #1976d2); color: #fff; padding: 8px 24px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .admin-banner { background: linear-gradient(90deg, #c62828, #d32f2f); color: #fff; padding: 10px 24px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(198,40,40,0.2); }
+        .user-banner { background: linear-gradient(90deg, #1565c0, #1976d2); color: #fff; padding: 10px 24px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(21,101,192,0.2); }
 
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-card { background: #fff; padding: 22px; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .stat-card .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
-        .stat-card .value { font-size: 28px; font-weight: bold; color: #333; }
+        .stat-card .value { font-size: 28px; font-weight: 800; color: #1a237e; }
         .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
 
-        .data-table { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .data-table { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
         .data-table table { width: 100%; border-collapse: collapse; }
         .data-table th { background: #f5f7fa; padding: 12px 16px; text-align: left; font-size: 13px; color: #666; font-weight: 600; }
         .data-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
@@ -108,68 +205,74 @@
         .badge-red { background: #ffcdd2; color: #c62828; }
 
         .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-        .status-online { background: #4caf50; }
+        .status-online { background: #4caf50; box-shadow: 0 0 6px rgba(76,175,80,0.5); }
         .status-offline { background: #f44336; }
 
-        .btn { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
-        .btn-primary { background: #2a5298; color: #fff; }
-        .btn-primary:hover { background: #1e3c72; }
-        .btn-danger { background: #d32f2f; color: #fff; }
-        .btn-danger:hover { background: #b71c1c; }
-        .btn-success { background: #388e3c; color: #fff; }
-        .btn-success:hover { background: #2e7d32; }
+        .btn { padding: 9px 22px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.25s; }
+        .btn-primary { background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; box-shadow: 0 2px 8px rgba(30,60,114,0.2); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(30,60,114,0.3); }
+        .btn-danger { background: linear-gradient(135deg, #c62828, #d32f2f); color: #fff; box-shadow: 0 2px 8px rgba(198,40,40,0.2); }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(198,40,40,0.3); }
+        .btn-success { background: linear-gradient(135deg, #2e7d32, #43a047); color: #fff; box-shadow: 0 2px 8px rgba(46,125,50,0.2); }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(46,125,50,0.3); }
         .btn-sm { padding: 6px 14px; font-size: 12px; }
 
-        .prediction-result { background: #fff; border-radius: 12px; padding: 24px; margin-top: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .prediction-chart { width: 100%; height: 300px; background: #fafafa; border-radius: 8px; margin-top: 16px; }
+        .prediction-result { background: #fff; border-radius: 14px; padding: 24px; margin-top: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+        .prediction-chart { width: 100%; height: 300px; background: #fafafa; border-radius: 10px; margin-top: 16px; }
 
-        .alert-item { background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; }
+        .alert-item { background: #fff; padding: 16px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s; }
+        .alert-item:hover { transform: translateX(4px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .alert-item .left { flex: 1; }
         .alert-item .device { font-weight: 600; font-size: 15px; color: #333; }
         .alert-item .msg { font-size: 13px; color: #666; margin-top: 4px; }
         .alert-item .time { font-size: 12px; color: #999; }
 
-        select { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; cursor: pointer; }
-        input { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
-        input:focus { border-color: #2a5298; }
-        textarea { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; resize: vertical; min-height: 80px; font-family: inherit; }
+        select { padding: 9px 16px; border: 2px solid #e8eaf6; border-radius: 10px; font-size: 14px; outline: none; cursor: pointer; transition: border 0.25s; background: #f8f9fc; }
+        select:focus { border-color: #2196f3; }
+        input { padding: 9px 16px; border: 2px solid #e8eaf6; border-radius: 10px; font-size: 14px; outline: none; transition: all 0.25s; background: #f8f9fc; }
+        input:focus { border-color: #2196f3; background: #fff; }
+        textarea { padding: 9px 16px; border: 2px solid #e8eaf6; border-radius: 10px; font-size: 14px; outline: none; resize: vertical; min-height: 80px; font-family: inherit; background: #f8f9fc; transition: all 0.25s; }
+        textarea:focus { border-color: #2196f3; background: #fff; }
 
         .page { display: none; }
         .page.active { display: block; }
 
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,27,42,0.6); z-index: 999; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
         #modal-overlay.show { display: flex; }
-        .modal-box { background: #fff; border-radius: 12px; padding: 32px; width: 420px; max-height: 80vh; overflow-y: auto; }
-        .modal-box h3 { margin-bottom: 20px; color: #333; font-size: 18px; }
-        .modal-box label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; margin-top: 12px; }
+        .modal-box { background: #fff; border-radius: 16px; padding: 32px; width: 420px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal-box h3 { margin-bottom: 20px; color: #1a237e; font-size: 18px; font-weight: 700; }
+        .modal-box label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 12px; font-weight: 500; }
         .modal-box input, .modal-box select { width: 100%; margin-bottom: 4px; }
         .modal-box .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
         .modal-box .modal-btns button { flex: 1; }
 
         #toast { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; }
-        .toast-msg { background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast-msg { background: #1a237e; color: #fff; padding: 12px 24px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
 
-        .info-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
-        .info-card h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
-        .suggestion-box { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+        .info-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .info-card h3 { font-size: 16px; color: #1a237e; margin-bottom: 12px; font-weight: 700; }
+        .suggestion-box { padding: 12px 16px; border-radius: 10px; margin-bottom: 8px; font-size: 14px; }
         .suggestion-safe { background: #e8f5e9; border-left: 4px solid #4caf50; color: #2e7d32; }
         .suggestion-caution { background: #fff9c4; border-left: 4px solid #ffeb3b; color: #f57f17; }
         .suggestion-danger { background: #ffebee; border-left: 4px solid #f44336; color: #c62828; }
-        .report-card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border-left: 4px solid #ddd; }
+        .report-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #ddd; }
         .report-card.pending { border-left-color: #ff9800; }
         .report-card.verified { border-left-color: #2196f3; }
         .report-card.resolved { border-left-color: #4caf50; }
         .profile-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
         .profile-row .label { width: 120px; color: #666; font-size: 14px; }
         .profile-row .value { flex: 1; color: #333; font-size: 14px; font-weight: 500; }
-        .alert-banner { background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 16px; margin-bottom: 16px; display: none; }
+        .toggle-slider input:checked + span { background: #4caf50 !important; }
+        .toggle-slider input:checked + span > span { transform: translateX(20px); }
+        .alert-banner { background: #fff3e0; border: 2px solid #ff9800; border-radius: 10px; padding: 16px; margin-bottom: 16px; display: none; }
         .alert-banner.show { display: block; }
 
         /* 地图弹窗样式 */
-        .map-popup { position: absolute; background: #fff; border-radius: 12px; padding: 20px; width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 50; border: 2px solid #2a5298; }
+        .map-popup { position: absolute; background: #fff; border-radius: 16px; padding: 20px; width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); z-index: 50; border: 2px solid #2196f3; }
         .map-popup .popup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .map-popup .popup-header h3 { font-size: 16px; color: #333; }
-        .map-popup .popup-close { background: #eee; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+        .map-popup .popup-header h3 { font-size: 16px; color: #1a237e; font-weight: 700; }
+        .map-popup .popup-close { background: #f5f7fa; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .map-popup .popup-close:hover { background: #eee; }
         .map-popup .popup-data { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         .map-popup .popup-data-item { padding: 8px; background: #f5f7fa; border-radius: 6px; }
         .map-popup .popup-data-item .val { font-size: 18px; font-weight: bold; }
@@ -182,10 +285,10 @@
         .map-popup .camera-water { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s; }
 
         /* 避难场所样式 */
-        .shelter-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-left: 4px solid #4caf50; }
+        .shelter-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #4caf50; }
         .shelter-card.closed { border-left-color: #f44336; }
         .shelter-card.limited { border-left-color: #ff9800; }
-        .shelter-name { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 4px; }
+        .shelter-name { font-size: 15px; font-weight: bold; color: #1a237e; margin-bottom: 4px; }
         .shelter-addr { font-size: 13px; color: #666; margin-bottom: 8px; }
         .shelter-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
         .shelter-tag { padding: 3px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
@@ -195,11 +298,14 @@
         .shelter-supplies { display: flex; gap: 6px; flex-wrap: wrap; }
         .supply-item { padding: 4px 10px; background: #e3f2fd; border-radius: 6px; font-size: 12px; color: #1976d2; }
         .shelter-dist { font-size: 12px; color: #999; margin-top: 8px; }
-        .shelter-phone { font-size: 12px; color: #2a5298; margin-top: 4px; }
+        .shelter-phone { font-size: 12px; color: #2196f3; margin-top: 4px; }
 
         /* 详细地图样式 */
-        .detail-map-container { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; }
-        .map-sidebar-info { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-top: 16px; }
+        .detail-map-container { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05); position: relative; }
+        #real-map { width: 100%; height: 520px; border-radius: 12px; }
+        .map-popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .map-popup-overlay.show { display: flex; }
+        .map-sidebar-info { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-top: 16px; }
         .map-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
         .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
@@ -210,8 +316,8 @@
         .clickable-row:hover td:first-child { color: #1565c0; text-decoration: underline; }
         .row-detail-icon { display: inline-block; margin-left: 4px; color: #2196f3; font-size: 12px; }
         /* 跨模块跳转链接按钮 */
-        .nav-link-btn { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid #ddd; background: #fff; color: #555; text-decoration: none; white-space: nowrap; }
-        .nav-link-btn:hover { background: #e3f2fd; border-color: #2196f3; color: #1565c0; }
+        .nav-link-btn { display: inline-flex; align-items: center; gap: 3px; padding: 4px 11px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid #e0e0e0; background: #fff; color: #555; text-decoration: none; white-space: nowrap; font-weight: 500; }
+        .nav-link-btn:hover { background: #e3f2fd; border-color: #2196f3; color: #1565c0; transform: translateY(-1px); }
         .nav-link-btn.blue { background: #e3f2fd; color: #1565c0; border-color: #90caf9; }
         .nav-link-btn.blue:hover { background: #bbdefb; }
         .nav-link-btn.green { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
@@ -228,185 +334,158 @@
         /* 用户端设备详情弹窗 */
         .modal-box.wide { width: 640px; max-height: 85vh; }
         .device-detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e3f2fd; }
-        .device-detail-header h3 { font-size: 18px; color: #1565c0; }
+        .device-detail-header h3 { font-size: 18px; color: #1565c0; font-weight: 700; }
         .device-detail-header .device-id-tag { background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 600; }
         .device-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-        .device-info-item { padding: 10px; background: #f5f7fa; border-radius: 8px; }
+        .device-info-item { padding: 10px; background: #f5f7fa; border-radius: 10px; }
         .device-info-item .lbl { font-size: 12px; color: #999; margin-bottom: 4px; }
-        .device-info-item .val { font-size: 15px; font-weight: 600; color: #333; }
+        .device-info-item .val { font-size: 15px; font-weight: 600; color: #1a237e; }
         .device-detail-section { margin-bottom: 16px; }
-        .device-detail-section h4 { font-size: 14px; color: #333; margin-bottom: 8px; padding-left: 8px; border-left: 3px solid #2196f3; }
-        .device-camera-box { height: 180px; border-radius: 8px; background: #0d1117; position: relative; overflow: hidden; }
+        .device-detail-section h4 { font-size: 14px; color: #1a237e; margin-bottom: 8px; padding-left: 8px; border-left: 3px solid #2196f3; font-weight: 700; }
+        .device-camera-box { height: 180px; border-radius: 10px; background: #0d1117; position: relative; overflow: hidden; }
         .device-camera-box .cam-label { position: absolute; top: 8px; left: 12px; color: #fff; font-size: 11px; font-weight: bold; }
         .device-camera-box .cam-time { position: absolute; top: 8px; right: 12px; color: #0f0; font-size: 11px; font-family: monospace; }
         .device-camera-box .cam-water { position: absolute; bottom: 0; left: 0; width: 100%; transition: height 0.5s; }
         .device-mini-chart { height: 120px; }
 
-        /* 远程操控样式 */
-        .control-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
-        .control-panel h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
-        .device-control-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; }
-        .device-control-card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .device-control-card .name { font-size: 15px; font-weight: bold; color: #333; }
-        .telemetry-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-        .telemetry-item { padding: 8px; background: #f5f7fa; border-radius: 6px; text-align: center; }
-        .telemetry-item .val { font-size: 16px; font-weight: bold; }
-        .telemetry-item .lbl { font-size: 11px; color: #999; }
-        .control-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-        .cmd-log { background: #f5f7fa; border-radius: 8px; padding: 12px; margin-top: 16px; }
-        .cmd-log-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .cmd-log-item:last-child { border-bottom: none; }
-        .cmd-success { color: #2e7d32; }
-        .cmd-failed { color: #c62828; }
-        .cmd-pending { color: #ff9800; }
-
-        /* 多源数据录入样式 */
-        .source-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); border-left: 4px solid #2196f3; }
-        .source-card.active { border-left-color: #4caf50; }
-        .source-card.inactive { border-left-color: #9e9e9e; }
-        .source-name { font-size: 15px; font-weight: bold; color: #333; }
-        .import-form { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
-        .weather-card { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-        .weather-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .weather-item { text-align: center; padding: 12px; background: rgba(255,255,255,0.8); border-radius: 8px; }
-        .weather-item .icon { font-size: 28px; }
-        .weather-item .val { font-size: 20px; font-weight: bold; color: #333; }
-        .weather-item .lbl { font-size: 12px; color: #666; }
-
-        /* 应急指挥调度样式 */
-        .dispatch-panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
-        .event-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-left: 4px solid; }
-        .event-card.critical { border-left-color: #c62828; }
-        .event-card.warning { border-left-color: #ff9800; }
-        .event-card.info { border-left-color: #2196f3; }
-        .event-header { display: flex; justify-content: space-between; align-items: center; }
-        .event-title { font-size: 15px; font-weight: bold; }
-        .team-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 12px; }
-        .team-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .team-info { flex: 1; }
-        .team-name { font-size: 14px; font-weight: bold; color: #333; }
-        .team-detail { font-size: 12px; color: #666; }
-        .resource-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-        .resource-item { background: #fff; border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
-        .resource-item .icon { font-size: 28px; }
-        .resource-item .val { font-size: 22px; font-weight: bold; color: #333; }
-        .resource-item .lbl { font-size: 12px; color: #666; }
+/* 数据分析与可视化样式 */
+        .data-analysis-panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .control-panel { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .control-panel h3 { font-size: 16px; color: #1a237e; margin-bottom: 12px; font-weight: 700; }
+        .weather-card { background: linear-gradient(135deg, #1e3c72, #2a5298); color: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(30,60,114,0.2); }
+        .weather-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+        .weather-item { text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .weather-item .icon { font-size: 20px; }
+        .weather-item .val { font-size: 18px; font-weight: bold; margin: 4px 0; }
+        .weather-item .lbl { font-size: 11px; opacity: 0.8; }
+        .import-form { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .import-form h3 { font-size: 16px; color: #1a237e; margin-bottom: 12px; font-weight: 700; }
+        .source-card { padding: 12px; border-radius: 10px; margin-bottom: 8px; background: #f5f7fa; border-left: 3px solid #ddd; transition: all 0.2s; }
+        .source-card.active { border-left-color: #4caf50; background: #f1f8e9; }
+        .source-card.inactive { border-left-color: #ff9800; background: #fff8e1; }
+        .source-card .source-name { font-weight: 700; color: #1a237e; }
     </style>
 </head>
 <body>
-
-<div id="toast"><div class="toast-msg" id="toast-msg"></div></div>
-<div id="modal-overlay"><div class="modal-box" id="modal-content"></div></div>
-
-<!-- ================== 登录页面 ================== -->
-<div id="login-page">
-    <div class="login-box">
-        <h1>城市内涝智能监测评估系统</h1>
-        <p>江西省宜春市 | 基于AI的积水预测与风险评估平台</p>
-        <div class="role-tabs">
-            <div class="role-tab admin active" onclick="switchLoginRole('admin')">管理员登录</div>
-            <div class="role-tab user" onclick="switchLoginRole('user')">用户登录</div>
-        </div>
-        <input type="text" id="login-username" placeholder="用户名 / 手机号" value="admin" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
-        <input type="password" id="login-password" placeholder="密码" value="admin123" onkeydown="if(event.key==='Enter')doLogin()">
-        <button onclick="doLogin()">登 录</button>
-        <div class="login-link-row">
-            <a onclick="showRegister()">没有账号？立即注册</a>
-            <a onclick="showForgotPassword()">忘记密码？</a>
-        </div>
-        <div class="login-hint">
-            <div class="admin-hint">管理员: <span>admin / admin123</span> 或 <span>manager / manager123</span></div>
-            <div class="user-hint">用户: <span>user / user123</span> 或 <span>citizen01 / citizen123</span></div>
+    <!-- 登录页面 -->
+    <div id="login-page">
+        <div class="rain-bg" id="rain-bg"></div>
+        <div class="water-wave"></div>
+        <div class="login-wrapper">
+            <div class="login-brand">
+                <div class="brand-icon">🌊</div>
+                <h1>基于AI的<br>城市内涝智能监测评估系统</h1>
+                <p class="brand-subtitle">宜春市袁州区 · 智慧城市内涝监测平台<br>运用LSTM深度学习模型，实现城市积水的实时监测与精准预测</p>
+                <ul class="feature-list">
+                    <li>AI积水预测 · LSTM深度学习模型</li>
+                    <li>实时监测 · 6个监测点全覆盖</li>
+                    <li>智能预警 · 三级风险自动推送</li>
+                    <li>多源数据 · 传感器+气象+遥感融合</li>
+                </ul>
+            </div>
+            <div class="login-card">
+                <div class="card-title">欢迎登录</div>
+                <div class="card-subtitle">请选择角色并输入账号信息</div>
+                <div class="role-tabs">
+                    <div class="role-tab admin active" onclick="switchLoginRole('admin')">管理员</div>
+                    <div class="role-tab user" onclick="switchLoginRole('user')">普通用户</div>
+                </div>
+                <input type="text" id="login-username" placeholder="用户名" value="admin">
+                <input type="password" id="login-password" placeholder="密码" value="admin123">
+                <button class="login-btn" onclick="doLogin()">登 录</button>
+                <div class="login-link-row">
+                    <a onclick="showForgotPassword()">忘记密码？</a>
+                    <a onclick="showRegister()">注册账号</a>
+                </div>
+                <div class="login-hint">演示账号：<br><span class="admin-hint">管理员 admin / admin123</span><br><span class="user-hint">用户 user / user123</span></div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ================== 注册/找回密码弹窗 ================== -->
-<div id="register-overlay">
-    <div class="register-box">
-        <h2 id="register-title">用户注册</h2>
-        <p class="subtitle" id="register-subtitle">注册后可查看实时积水数据、接收预警、上报积水信息</p>
-        <div class="step-indicator" id="step-indicator">
-            <div class="step-dot active" id="dot-1">1</div>
-            <div class="step-line" id="line-1"></div>
-            <div class="step-dot" id="dot-2">2</div>
-            <div class="step-line" id="line-2"></div>
-            <div class="step-dot" id="dot-3">3</div>
-        </div>
-        <!-- 步骤1：输入手机号 -->
-        <div class="register-step active" id="reg-step-1">
-            <div class="register-tips">
-                <strong>📱 第一步：验证手机号</strong>
-                请输入您的手机号，系统将发送6位验证码到该手机号
+    <!-- 注册弹窗 -->
+    <div id="register-overlay">
+        <div class="register-box">
+            <h2 id="register-title">用户注册</h2>
+            <p class="subtitle" id="register-subtitle">注册后可查看实时积水数据、接收预警、上报积水信息</p>
+            <div class="step-indicator" id="step-indicator" style="display:flex;">
+                <div class="step-dot active" id="dot-1">1</div>
+                <div class="step-line" id="line-1"></div>
+                <div class="step-dot" id="dot-2">2</div>
+                <div class="step-line" id="line-2"></div>
+                <div class="step-dot" id="dot-3">3</div>
             </div>
-            <label>手机号</label>
-            <input type="tel" id="reg-phone" placeholder="请输入11位手机号" maxlength="11" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-            <div class="code-row">
-                <input type="text" id="reg-code" placeholder="输入6位验证码" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                <button class="btn-code" id="btn-send-code" onclick="sendVerifyCode()">获取验证码</button>
+            <div class="register-step active" id="reg-step-1">
+                <div class="register-tips"><strong>步骤1：手机验证</strong>请输入您的手机号，系统将发送验证码短信</div>
+                <label>手机号</label>
+                <input type="text" id="reg-phone" placeholder="请输入手机号" maxlength="11">
+                <div class="code-row"><input type="text" id="reg-code" placeholder="验证码" maxlength="6"><button class="btn-code" id="btn-send-code" onclick="sendVerifyCode()">获取验证码</button></div>
+                <button class="btn-full" onclick="verifyCodeStep()">下一步</button>
+                <button class="btn-back" onclick="closeRegister()">返回登录</button>
             </div>
-            <button class="btn-full" onclick="verifyCode()">下一步</button>
-            <button class="btn-back" onclick="closeRegister()">返回登录</button>
-        </div>
-        <!-- 步骤2：验证码校验 -->
-        <div class="register-step" id="reg-step-2">
-            <div class="register-tips">
-                <strong>🔑 第二步：输入验证码</strong>
-                验证码已发送至您的手机，请输入收到的6位验证码
+            <div class="register-step" id="reg-step-2">
+                <div class="phone-preview" id="phone-display">手机号：<span class="phone-num"></span></div>
+                <label>请输入收到的验证码</label>
+                <div class="code-input-box"><input type="text" id="reg-code-verify" placeholder="6位验证码" maxlength="6"></div>
+                <button class="btn-full" onclick="confirmVerifyCode()">确认验证码</button>
+                <button class="btn-back" onclick="goToStep(1)">上一步</button>
             </div>
-            <div class="phone-preview">验证手机：<span class="phone-num" id="phone-display">-</span></div>
-            <div class="code-input-box">
-                <input type="text" id="reg-code-verify" placeholder="------" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="font-size:24px;letter-spacing:8px;text-align:center;width:200px;">
+            <div class="register-step" id="reg-step-3">
+                <div class="register-tips"><strong>步骤3：设置账号</strong>请设置您的登录用户名和密码</div>
+                <label>用户名</label>
+                <input type="text" id="reg-username" placeholder="设置登录用户名">
+                <label>登录密码</label>
+                <input type="password" id="reg-password" placeholder="设置登录密码" oninput="checkPwdStrength()">
+                <div class="pwd-strength" id="pwd-strength" style="background:#e0e0e0;"></div>
+                <label>确认密码</label>
+                <input type="password" id="reg-password2" placeholder="再次输入密码">
+                <button class="btn-full" onclick="completeRegister()">完成注册</button>
+                <button class="btn-back" onclick="goToStep(2)">上一步</button>
             </div>
-            <button class="btn-full" onclick="confirmVerifyCode()">验证</button>
-            <div style="text-align:center;margin-top:12px;">
-                <a style="color:#2a5298;cursor:pointer;font-size:13px;" id="resend-link" onclick="resendCode()">未收到？重新发送验证码</a>
-            </div>
-            <button class="btn-back" onclick="backToStep(1)">上一步</button>
-        </div>
-        <!-- 步骤3：设置账号密码 -->
-        <div class="register-step" id="reg-step-3">
-            <div class="register-tips">
-                <strong>✅ 第三步：设置账号信息</strong>
-                手机号验证成功！请设置您的用户名和登录密码
-            </div>
-            <label>用户名</label>
-            <input type="text" id="reg-username" placeholder="3-20位字符，字母/数字/下划线">
-            <label>登录密码</label>
-            <input type="password" id="reg-password" placeholder="6-20位密码" oninput="checkPwdStrength(this.value)">
-            <div class="pwd-strength" id="pwd-strength" style="background:#e0e0e0;"></div>
-            <label>确认密码</label>
-            <input type="password" id="reg-password2" placeholder="请再次输入密码">
-            <button class="btn-full" onclick="doRegister()">完成注册</button>
-            <button class="btn-back" onclick="backToStep(2)">上一步</button>
         </div>
     </div>
-</div>
 
-<!-- ================== 主界面 ================== -->
-<div id="main-app">
-    <div class="sidebar admin-sidebar" id="sidebar">
-        <h2>城市内涝监测系统</h2>
-        <div class="city-name">江西省宜春市</div>
-        <div class="role-badge admin" id="role-badge">管理员模式</div>
-        <nav id="nav-menu"></nav>
-        <div class="user-info">
-            <p id="current-user">未登录</p>
-            <button onclick="doLogout()">退出登录</button>
+    <!-- 主应用 -->
+    <div id="main-app">
+        <div class="sidebar admin-sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🌊</div>
+                <div class="logo-text">城市内涝<br>监测系统</div>
+            </div>
+            <p class="city-name">宜春市袁州区</p>
+            <span class="role-badge admin" id="role-badge">管理员模式</span>
+            <nav id="nav-menu"></nav>
+            <div class="user-info">
+                <div id="sidebar-avatar-area" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <div id="sidebar-avatar" style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2196f3,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;">👤</div>
+                    <div style="flex:1;min-width:0;">
+                        <div id="sidebar-username" style="color:#fff;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">-</div>
+                        <div id="sidebar-roletag" style="font-size:11px;margin-top:2px;">-</div>
+                    </div>
+                </div>
+                <button onclick="doLogout()">退出登录</button>
+            </div>
         </div>
+        <div class="main-content" id="main-content"></div>
     </div>
-    <div class="main-content" id="main-content"></div>
-</div>
 
-<script>
+    <!-- 提示框 -->
+    <div id="toast"><div class="toast-msg" id="toast-msg"></div></div>
+
+    <!-- 弹窗 -->
+    <div id="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal-box" id="modal-content"></div></div>
+
+    <!-- 地图弹窗遮罩 -->
+    <div class="map-popup-overlay" id="map-popup-overlay" onclick="if(event.target===this)closeMapPopup()"></div>
+
+    <script>
 // ==================== 内置数据库 ====================
 let DB = {
     users: [
-        { id: 1, username: 'admin', password: 'admin123', role: 'admin', phone: '13807950001', email: 'admin@yichun.gov.cn', created_at: '2026-01-15 09:00:00' },
-        { id: 2, username: 'user', password: 'user123', role: 'user', phone: '13807950002', email: 'zhangmin@163.com', created_at: '2026-01-20 14:30:00' },
-        { id: 3, username: 'citizen01', password: 'citizen123', role: 'user', phone: '13807950003', email: 'liming@163.com', created_at: '2026-02-01 10:00:00' },
-        { id: 4, username: 'citizen02', password: 'citizen123', role: 'user', phone: '13807950004', email: 'wangfang@163.com', created_at: '2026-02-05 11:20:00' },
-        { id: 5, username: 'manager', password: 'manager123', role: 'admin', phone: '13807950005', email: 'manager@yichun.gov.cn', created_at: '2026-01-10 08:00:00' },
+        { id: 1, username: 'admin', password: 'admin123', role: 'admin', phone: '', email: '', real_name: '', gender: '', address: '', notify_sms: false, notify_email: false, notify_push: false, created_at: '2026-01-15 09:00:00' },
+        { id: 2, username: 'user', password: 'user123', role: 'user', phone: '', email: '', real_name: '', gender: '', address: '', notify_sms: false, notify_email: false, notify_push: false, created_at: '2026-01-20 14:30:00' },
+        { id: 3, username: 'citizen01', password: 'citizen123', role: 'user', phone: '', email: '', real_name: '', gender: '', address: '', notify_sms: false, notify_email: false, notify_push: false, created_at: '2026-02-01 10:00:00' },
+        { id: 4, username: 'citizen02', password: 'citizen123', role: 'user', phone: '', email: '', real_name: '', gender: '', address: '', notify_sms: false, notify_email: false, notify_push: false, created_at: '2026-02-05 11:20:00' },
+        { id: 5, username: 'manager', password: 'manager123', role: 'admin', phone: '', email: '', real_name: '', gender: '', address: '', notify_sms: false, notify_email: false, notify_push: false, created_at: '2026-01-10 08:00:00' },
     ],
     devices: [
         { id: 1, device_id: 'DEV001', name: '袁山公园监测点', location: '宜春市袁州区袁山东路袁山公园', longitude: 114.3830, latitude: 27.8040, status: 'online', install_date: '2026-01-15', last_online: null },
@@ -449,7 +528,6 @@ let DB = {
     nextUserId: 6,
     nextReportId: 5,
     nextLogId: 9,
-    // 远程操控数据
     remoteCommands: [
         { id: 1, device_id: 'DEV002', command: '调整采集频率', params: '5分钟→10分钟', operator: 'admin', result: 'success', created_at: '2026-06-18 08:30:15' },
         { id: 2, device_id: 'DEV005', command: '设备重启', params: '软重启', operator: 'admin', result: 'success', created_at: '2026-06-18 09:15:30' },
@@ -499,7 +577,6 @@ let DB = {
         { id: 5, source: '批量CSV导入', records: 2400, status: 'success', operator: 'manager', created_at: '2026-06-15 14:00:00' },
         { id: 6, source: '卫星遥感影像', records: 0, status: 'failed', operator: '系统自动', created_at: '2026-06-18 08:00:00' },
     ],
-    // 应急指挥调度
     emergencyEvents: [
         { id: 1, title: '秀江大桥区域严重内涝', level: 'critical', location: '宜春市袁州区秀江中路秀江大桥', water_depth: '0.25m', affected_area: '约2000㎡', affected_people: 350, status: 'active', started_at: '2026-06-18 06:30', description: '秀江大桥下积水严重，车辆无法通行，周边商铺受淹', teams: ['宜春市市政排水队', '袁州区交警中队'] },
         { id: 2, title: '宜春火车站出站口积水', level: 'critical', location: '宜春市袁州区站前路宜春站出站口', water_depth: '0.22m', affected_area: '约800㎡', affected_people: 120, status: 'active', started_at: '2026-06-18 08:15', description: '出站口积水到膝盖，大量旅客滞留', teams: ['宜春市市政排水队'] },
@@ -618,8 +695,8 @@ function apiPublicAlerts() { return { code: 200, data: DB.alerts.slice(0, 20).ma
 function apiSubmitReport(data) { DB.reports.push({ id: DB.nextReportId++, user_id: currentUser.user_id, reporter_name: data.reporter_name, reporter_phone: data.reporter_phone, location: data.location, water_depth: data.water_depth, description: data.description, status: 'pending', admin_reply: '', created_at: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '公众上报', detail: `上报积水：${data.location}（${data.water_depth}）`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '上报成功！工作人员将尽快核实处理' }; }
 function apiMyReports() { return { code: 200, data: DB.reports.filter(r => r.user_id === currentUser.user_id).slice().reverse().map(r => ({ ...r })) }; }
 function apiTravel() { const assess = apiGetRiskAssess(); const devices = assess.data.devices; const safe = devices.filter(d => d.risk_level === 'green'); const caution = devices.filter(d => d.risk_level === 'yellow'); const danger = devices.filter(d => d.risk_level === 'orange' || d.risk_level === 'red'); const suggestions = []; if (danger.length) suggestions.push(`【避开】${danger.map(a => a.name.replace('监测点','')).join('、')}区域积水严重，请绕行`); if (caution.length) suggestions.push(`【注意】${caution.map(a => a.name.replace('监测点','')).join('、')}区域有轻微积水，缓慢通行`); if (safe.length) suggestions.push(`【畅通】${safe.map(a => a.name.replace('监测点','')).join('、')}区域道路正常`); if (!danger.length && !caution.length) suggestions.push('目前全市道路积水情况良好，可正常出行'); return { code: 200, data: { safe_areas: safe, caution_areas: caution, danger_areas: danger, suggestions, shelters: DB.shelters } }; }
-function apiGetProfile() { const user = DB.users.find(u => u.id === currentUser.user_id); if (!user) return { code: 404, message: '用户不存在' }; const reportCount = DB.reports.filter(r => r.user_id === currentUser.user_id).length; return { code: 200, data: { id: user.id, username: user.username, role: user.role, phone: user.phone || '', email: user.email || '', created_at: user.created_at, report_count: reportCount } }; }
-function apiUpdateProfile(phone, email) { const user = DB.users.find(u => u.id === currentUser.user_id); if (user) { user.phone = phone; user.email = email; } return { code: 200, message: '信息更新成功' }; }
+function apiGetProfile() { const user = DB.users.find(u => u.id === currentUser.user_id); if (!user) return { code: 404, message: '用户不存在' }; const reportCount = DB.reports.filter(r => r.user_id === currentUser.user_id).length; const alertCount = DB.alerts ? DB.alerts.filter(a => a.device_id).length : 0; return { code: 200, data: { id: user.id, username: user.username, role: user.role, phone: user.phone || '', email: user.email || '', created_at: user.created_at, report_count: reportCount, real_name: user.real_name || '', gender: user.gender || '', region: '宜春市袁州区', address: user.address || '', alert_count: alertCount, login_count: user.login_count || 0, last_login: user.last_login || '-', last_login_ip: user.last_login_ip || '-', security_level: user.password.length >= 8 ? '高' : (user.password.length >= 6 ? '中' : '低'), notify_sms: user.notify_sms || false, notify_email: user.notify_email || false, notify_push: user.notify_push || false } }; }
+function apiUpdateProfile(data) { const user = DB.users.find(u => u.id === currentUser.user_id); if (user) { if (data.phone !== undefined) user.phone = data.phone; if (data.email !== undefined) user.email = data.email; if (data.real_name !== undefined) user.real_name = data.real_name; if (data.gender !== undefined) user.gender = data.gender; if (data.address !== undefined) user.address = data.address; if (data.notify_sms !== undefined) user.notify_sms = data.notify_sms; if (data.notify_email !== undefined) user.notify_email = data.notify_email; if (data.notify_push !== undefined) user.notify_push = data.notify_push; } return { code: 200, message: '信息更新成功' }; }
 function apiChangePassword(oldPwd, newPwd) { const user = DB.users.find(u => u.id === currentUser.user_id); if (!user || user.password !== oldPwd) return { code: 400, message: '旧密码错误' }; user.password = newPwd; DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '修改密码', detail: '用户修改了登录密码', ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '密码修改成功' }; }
 // 获取设备历史趋势数据（用于地图弹窗迷你折线图）
 function apiGetDeviceTrend(deviceId) { const data = DB.flood_data.filter(f => f.device_id === deviceId).slice(-8); return { code: 200, data: data.map(d => ({ water_level: d.water_level, collect_time: d.collect_time })) }; }
@@ -656,9 +733,91 @@ function apiGetUserDeviceDetail(deviceId) {
     }};
 }
 
-// ==================== 远程操控 API ====================
-function apiGetDeviceControl() { return { code: 200, data: DB.devices.map(d => { const t = DB.deviceTelemetry[d.device_id] || {}; const cmds = DB.remoteCommands.filter(c => c.device_id === d.device_id).slice(-5).reverse(); return { ...d, telemetry: t, recent_commands: cmds, power_status: d.status === 'online' ? '运行中' : '已停机', sampling_freq: cmds.find(c => c.command === '调整采集频率') ? cmds.find(c => c.command === '调整采集频率').params.split('→')[1] || '5分钟' : '5分钟' }; }) }; }
-function apiSendCommand(deviceId, command, params) { DB.remoteCommands.unshift({ id: DB.remoteCommands.length + 1, device_id: deviceId, command: command, params: params, operator: currentUser.username, result: 'success', created_at: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '远程操控', detail: `对设备 ${deviceId} 发送指令：${command}(${params})`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: `指令已发送：${command}(${params})` }; }
+function apiGetDeviceControl() {
+    return {
+        code: 200,
+        data: DB.devices.map(d => {
+            const t = DB.deviceTelemetry[d.device_id] || {};
+            const cmds = DB.remoteCommands.filter(c => c.device_id === d.device_id).slice(-5).reverse();
+            // 从指令历史中推算当前状态
+            const freqCmd = cmds.find(c => c.command === '调整采集频率');
+            const currentFreq = freqCmd ? freqCmd.params.split('→')[1] || '5分钟' : '5分钟';
+            // 灯光状态
+            const lightCmd = cmds.find(c => c.command === '灯光控制');
+            const lightOn = lightCmd ? lightCmd.params.includes('开启') : false;
+            return {
+                ...d,
+                telemetry: t,
+                recent_commands: cmds,
+                power_status: d.status === 'online' ? '运行中' : '已停机',
+                sampling_freq: currentFreq,
+                light_status: lightOn ? '已开启' : '已关闭'
+            };
+        })
+    };
+}
+function apiSendCommand(deviceId, command, params) {
+    // 记录指令
+    DB.remoteCommands.unshift({
+        id: DB.remoteCommands.length + 1,
+        device_id: deviceId,
+        command: command,
+        params: params,
+        operator: currentUser.username,
+        result: 'success',
+        created_at: formatTime(new Date())
+    });
+    // 实际操作设备状态
+    const dev = DB.devices.find(d => d.device_id === deviceId);
+    if (!dev) return { code: 404, message: '设备不存在' };
+
+    if (command === '紧急停机') {
+        dev.status = 'offline';
+        showToast(`⚠️ 设备 ${deviceId} 已紧急停机`);
+    }
+    if (command === '开机') {
+        dev.status = 'online';
+        showToast(`✅ 设备 ${deviceId} 已开机恢复`);
+    }
+    if (command === '设备重启') {
+        dev.status = 'offline';
+        showToast(`🔄 设备 ${deviceId} 重启中...`);
+        // 3秒后自动恢复在线
+        setTimeout(() => {
+            dev.status = 'online';
+            // 重置遥测数据（模拟重启后重新采集）
+            if (DB.deviceTelemetry[deviceId]) {
+                DB.deviceTelemetry[deviceId].cpu = '12%';
+                DB.deviceTelemetry[deviceId].memory = '28%';
+                DB.deviceTelemetry[deviceId].uptime = '0h';
+            }
+            showToast(`✅ 设备 ${deviceId} 重启完成，已恢复在线`);
+            if (document.getElementById('control-device-list')) loadAdminControl();
+        }, 3000);
+    }
+    if (command === '紧急校准') {
+        showToast(`🎯 设备 ${deviceId} 传感器校准中...`);
+        // 校准后微调该设备的积水数据（模拟更精准）
+        setTimeout(() => {
+            showToast(`✅ 设备 ${deviceId} 校准完成，数据精度提升`);
+        }, 2000);
+    }
+    if (command === '灯光控制') {
+        const lightOn = params.includes('开启');
+        showToast(lightOn ? `💡 设备 ${deviceId} 夜间补光灯已开启` : `💡 设备 ${deviceId} 夜间补光灯已关闭`);
+    }
+
+    // 记录操作日志
+    DB.logs.push({
+        id: DB.nextLogId++,
+        user_id: currentUser.user_id,
+        username: currentUser.username,
+        detail: `对设备 ${deviceId} 发送指令：${command}(${params})`,
+        ip_address: '127.0.0.1',
+        created_at: formatTime(new Date())
+    });
+    return { code: 200, message: `指令已发送：${command}(${params})` };
+}
 function apiGetCommandLog() { return { code: 200, data: DB.remoteCommands.slice().reverse().slice(0, 30) }; }
 
 // ==================== 多源数据录入 API ====================
@@ -668,18 +827,54 @@ function apiGetImportHistory() { return { code: 200, data: DB.importHistory }; }
 function apiManualInput(data) { DB.importHistory.unshift({ id: DB.importHistory.length + 1, source: '人工手动录入', records: 1, status: 'success', operator: currentUser.username, created_at: formatTime(new Date()) }); DB.flood_data.push({ device_id: data.device_id, water_level: parseFloat(data.water_level), risk_level: getRiskLevel(parseFloat(data.water_level)), collect_time: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '数据录入', detail: `手动录入 ${data.device_id} 积水深度 ${data.water_level}m`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '数据录入成功' }; }
 function apiBatchImport(count) { DB.importHistory.unshift({ id: DB.importHistory.length + 1, source: '批量CSV导入', records: count, status: 'success', operator: currentUser.username, created_at: formatTime(new Date()) }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '数据录入', detail: `批量导入 ${count} 条CSV数据`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: `成功导入 ${count} 条数据` }; }
 
-// ==================== 应急指挥调度 API ====================
 function apiGetEmergencyEvents() { return { code: 200, data: DB.emergencyEvents }; }
 function apiGetRescueTeams() { return { code: 200, data: DB.rescueTeams }; }
 function apiGetDispatchCommands() { return { code: 200, data: DB.dispatchCommands }; }
 function apiGetResources() { return { code: 200, data: DB.resources }; }
 function apiIssueDispatchCommand(eventId, command, team) { DB.dispatchCommands.unshift({ id: DB.dispatchCommands.length + 1, event_id: eventId, command: command, issued_by: currentUser.username, issued_at: formatTime(new Date()), status: '执行中', team: team }); DB.logs.push({ id: DB.nextLogId++, user_id: currentUser.user_id, username: currentUser.username, action: '应急调度', detail: `对事件#${eventId}发布指令：${command}，执行单位：${team}`, ip_address: '127.0.0.1', created_at: formatTime(new Date()) }); return { code: 200, message: '调度指令已发布' }; }
 
+
+// ==================== 后端API配置 ====================
+// 自动识别：通过Flask访问时用后端API，否则用模拟模式
+const USE_BACKEND = false; // 纯前端独立版，永远使用本地模拟模式
+const BACKEND_URL = 'http://localhost:5000';
+
+async function apiCall(endpoint, data) {
+    if (!USE_BACKEND) return null; // 模拟模式
+    try {
+        const res = await fetch(BACKEND_URL + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await res.json();
+    } catch(e) {
+        console.log('[后端调用失败，切换模拟模式]', e.message);
+        return null;
+    }
+}
+
 // ==================== 登录 ====================
 let currentUser = null;
 let loginRole = 'admin';
 let mapPopupOpen = false;
 let selectedMapDevice = null;
+
+// 生成雨滴背景
+(function generateRain() {
+    const container = document.getElementById('rain-bg');
+    if (!container) return;
+    for (let i = 0; i < 40; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'rain-drop';
+        drop.style.left = Math.random() * 100 + '%';
+        drop.style.height = (Math.random() * 40 + 20) + 'px';
+        drop.style.animationDuration = (Math.random() * 1.5 + 1) + 's';
+        drop.style.animationDelay = Math.random() * 3 + 's';
+        drop.style.opacity = Math.random() * 0.4 + 0.2;
+        container.appendChild(drop);
+    }
+})();
 
 function switchLoginRole(role) {
     loginRole = role;
@@ -689,13 +884,51 @@ function switchLoginRole(role) {
     else { document.getElementById('login-username').value = 'user'; document.getElementById('login-password').value = 'user123'; }
 }
 
-function doLogin() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-    if (!username || !password) { showToast('请输入用户名和密码'); return; }
-    const res = apiLogin(username, password);
-    if (res.code === 200) { currentUser = res.data; document.getElementById('login-page').style.display = 'none'; document.getElementById('main-app').style.display = 'block'; initUI(res.data); showToast('登录成功，欢迎 ' + res.data.username); }
-    else { showToast(res.message); }
+async function doLogin() {
+    try {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!username || !password) { showToast('请输入用户名和密码'); return; }
+
+        // 后端模式：调用后端API
+        if (USE_BACKEND) {
+            const res = await apiCall('/api/login', { username: username, password: password });
+            if (res && res.code === 200) {
+                currentUser = res.data;
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                initUI(res.data);
+                showToast('登录成功，欢迎 ' + res.data.username);
+                return;
+            } else if (res) {
+                showToast(res.message);
+                return;
+            }
+            // 后端调用失败，切换模拟模式
+        }
+
+        // 模拟模式
+        const res = apiLogin(username, password);
+        if (res.code === 200) {
+            currentUser = res.data;
+            // 更新登录统计
+            const user = DB.users.find(u => u.id === currentUser.user_id);
+            if (user) {
+                user.login_count = (user.login_count || 0) + 1;
+                user.last_login = formatTime(new Date());
+                user.last_login_ip = '127.0.0.1';
+            }
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            initUI(res.data);
+            showToast('登录成功，欢迎 ' + res.data.username);
+        } else {
+            showToast(res.message);
+        }
+    } catch(e) {
+        console.error('登录异常:', e);
+        showToast('登录出现异常，请刷新页面重试');
+    }
 }
 
 // ==================== 注册流程 ====================
@@ -761,25 +994,50 @@ function goToStep(step) {
     document.getElementById('line-2').classList.toggle('done', step > 2);
 }
 
-function sendVerifyCode() {
+async function sendVerifyCode() {
     const phone = document.getElementById('reg-phone').value.trim();
     if (!phone) { showToast('请输入手机号'); return; }
     if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('手机号格式不正确'); return; }
     if (regMode === 'register' && DB.users.find(u => u.phone === phone)) { showToast('该手机号已注册，请直接登录'); return; }
     if (regMode === 'forgot' && !DB.users.find(u => u.phone === phone)) { showToast('该手机号未注册，请先注册'); return; }
-    const res = apiSendVerifyCode(phone);
-    if (res.code === 200) {
-        regPhone = phone;
-        regVerifyCode = res.data.code;
-        showToast('验证码已发送至 ' + phone + '（演示码：' + regVerifyCode + '）');
-        startCountdown();
-    } else {
-        showToast(res.message);
+
+    // 优先尝试后端API（真实发送短信）
+    if (USE_BACKEND) {
+        const res = await apiCall('/api/send_verify_code', { phone: phone });
+        if (res && res.code === 200) {
+            regPhone = phone;
+            showToast('验证码已发送至 ' + phone + '，请注意查收短信');
+            startCountdown();
+            return;
+        } else if (res) {
+            showToast(res.message);
+            return;
+        }
+        // 后端调用失败，自动切换模拟模式
     }
+
+    // 模拟模式（GitHub Pages 或无后端时使用）
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    regPhone = phone;
+    regVerifyCode = code;
+    showToast('验证码已发送至 ' + phone + '（演示码：' + code + '）');
+    startCountdown();
 }
 
-function resendCode() {
+async function resendCode() {
     if (regCountdownTimer) { showToast('请稍候再试'); return; }
+    if (USE_BACKEND) {
+        const res = await apiCall('/api/send_verify_code', { phone: regPhone });
+        if (res && res.code === 200) {
+            showToast('验证码已重新发送，请注意查收短信');
+            startCountdown();
+            return;
+        } else if (res) {
+            showToast(res.message);
+            return;
+        }
+    }
+    // 模拟模式
     const res = apiSendVerifyCode(regPhone);
     if (res.code === 200) {
         regVerifyCode = res.data.code;
@@ -803,11 +1061,29 @@ function startCountdown() {
     }, 1000);
 }
 
-function verifyCode() {
+async function verifyCode() {
     const phone = document.getElementById('reg-phone').value.trim();
     const code = document.getElementById('reg-code').value.trim();
     if (!phone) { showToast('请输入手机号'); return; }
     if (!code) { showToast('请输入验证码'); return; }
+
+    // 后端模式：调用后端API校验
+    if (USE_BACKEND) {
+        const res = await apiCall('/api/verify_code', { phone: phone, code: code });
+        if (res && res.code === 200) {
+            regPhone = phone;
+            document.getElementById('phone-display').textContent = phone.substring(0,3) + '****' + phone.substring(7);
+            showToast('验证码校验成功！');
+            goToStep(2);
+            return;
+        } else if (res) {
+            showToast(res.message);
+            return;
+        }
+        // 后端调用失败，切换模拟模式
+    }
+
+    // 模拟模式
     if (!regVerifyCode) { showToast('请先获取验证码'); return; }
     if (code !== regVerifyCode) { showToast('验证码错误'); return; }
     regPhone = phone;
@@ -815,9 +1091,26 @@ function verifyCode() {
     goToStep(2);
 }
 
-function confirmVerifyCode() {
+async function confirmVerifyCode() {
     const code = document.getElementById('reg-code-verify').value.trim();
     if (!code) { showToast('请输入验证码'); return; }
+
+    // 后端模式：再次校验验证码
+    if (USE_BACKEND) {
+        const phone = regPhone;
+        const res = await apiCall('/api/verify_code', { phone: phone, code: code });
+        if (res && res.code === 200) {
+            showToast('手机号验证成功！');
+            goToStep(3);
+            return;
+        } else if (res) {
+            showToast(res.message);
+            return;
+        }
+        // 后端调用失败，切换模拟模式
+    }
+
+    // 模拟模式
     if (code !== regVerifyCode) { showToast('验证码错误，请重新输入'); return; }
     showToast('手机号验证成功！');
     goToStep(3);
@@ -839,7 +1132,7 @@ function checkPwdStrength(pwd) {
     else { bar.className = 'pwd-strength strong'; }
 }
 
-function doRegister() {
+async function doRegister() {
     const username = document.getElementById('reg-username').value.trim();
     const password = document.getElementById('reg-password').value;
     const password2 = document.getElementById('reg-password2').value;
@@ -849,12 +1142,29 @@ function doRegister() {
     if (!password) { showToast('请输入密码'); return; }
     if (password.length < 6) { showToast('密码至少6位'); return; }
     if (password !== password2) { showToast('两次密码输入不一致'); return; }
+
     if (regMode === 'register') {
+        // 注册模式
+        if (USE_BACKEND) {
+            const res = await apiCall('/api/register', { phone: regPhone, username: username, password: password });
+            if (res && res.code === 200) {
+                showToast('注册成功！请使用手机号或用户名登录');
+                closeRegister();
+                switchLoginRole('user');
+                document.getElementById('login-username').value = username;
+                document.getElementById('login-password').value = '';
+                return;
+            } else if (res) {
+                showToast(res.message);
+                return;
+            }
+            // 后端调用失败，切换模拟模式
+        }
+        // 模拟模式
         const res = apiRegister(regPhone, username, password);
         if (res.code === 200) {
             showToast('注册成功！请使用手机号或用户名登录');
             closeRegister();
-            // 自动填充登录信息
             switchLoginRole('user');
             document.getElementById('login-username').value = username;
             document.getElementById('login-password').value = '';
@@ -862,7 +1172,23 @@ function doRegister() {
             showToast(res.message);
         }
     } else {
-        // 找回密码：重置密码
+        // 找回密码模式
+        if (USE_BACKEND) {
+            const res = await apiCall('/api/reset_password', { phone: regPhone, new_password: password });
+            if (res && res.code === 200) {
+                showToast('密码重置成功！请使用新密码登录');
+                closeRegister();
+                switchLoginRole('user');
+                const user = DB.users.find(u => u.phone === regPhone);
+                if (user) document.getElementById('login-username').value = user.username;
+                document.getElementById('login-password').value = '';
+                return;
+            } else if (res) {
+                showToast(res.message);
+                return;
+            }
+        }
+        // 模拟模式
         const user = DB.users.find(u => u.phone === regPhone);
         if (user) {
             user.password = password;
@@ -879,6 +1205,18 @@ function doRegister() {
 function doLogout() { currentUser = null; document.getElementById('login-page').style.display = 'flex'; document.getElementById('main-app').style.display = 'none'; }
 
 // ==================== 初始化界面 ====================
+function updateSidebarAvatar(user, isAdmin) {
+    const dbUser = DB.users.find(u => u.id === user.user_id);
+    const displayName = dbUser && dbUser.real_name ? dbUser.real_name : user.username;
+    document.getElementById('sidebar-username').textContent = displayName;
+    document.getElementById('sidebar-roletag').innerHTML = isAdmin ? '<span style="background:#d32f2f;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;">🔑 管理员</span>' : '<span style="background:#1976d2;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;">👤 用户</span>';
+    const avatarEl = document.getElementById('sidebar-avatar');
+    if (avatarEl) {
+        avatarEl.textContent = displayName.charAt(0).toUpperCase();
+        avatarEl.style.background = isAdmin ? 'linear-gradient(135deg,#d32f2f,#e57373)' : 'linear-gradient(135deg,#1976d2,#42a5f5)';
+    }
+}
+
 function initUI(user) {
     const isAdmin = user.role === 'admin';
     const sidebar = document.getElementById('sidebar');
@@ -887,44 +1225,94 @@ function initUI(user) {
         sidebar.className = 'sidebar admin-sidebar';
         badge.className = 'role-badge admin';
         badge.textContent = '管理员模式';
-        document.getElementById('current-user').textContent = '当前用户：' + user.username + '（管理员）';
+        updateSidebarAvatar(user, isAdmin);
         document.getElementById('nav-menu').innerHTML = `
-            <a onclick="showAdminPage('dashboard')" class="active" id="nav-dashboard">系统概览</a>
-            <a onclick="showAdminPage('devices')" id="nav-devices">设备管理</a>
-            <a onclick="showAdminPage('map')" id="nav-map">地图监测</a>
-            <a onclick="showAdminPage('prediction')" id="nav-prediction">AI积水预测</a>
-            <a onclick="showAdminPage('alerts')" id="nav-alerts">预警记录</a>
-            <a onclick="showAdminPage('history')" id="nav-history">历史数据</a>
-            <a onclick="showAdminPage('control')" id="nav-control">远程操控</a>
-            <a onclick="showAdminPage('datasource')" id="nav-datasource">多源数据录入</a>
-            <a onclick="showAdminPage('dispatch')" id="nav-dispatch">应急指挥调度</a>
-            <a onclick="showAdminPage('reports')" id="nav-reports">公众报料管理</a>
-            <a onclick="showAdminPage('admin')" id="nav-admin">系统管理</a>`;
+            <a onclick="showAdminPage('dashboard')" class="active" id="nav-dashboard">📊 系统概览</a>
+            <a onclick="showAdminPage('devices')" id="nav-devices">📡 设备管理</a>
+            <a onclick="showAdminPage('map')" id="nav-map">🗺️ 地图监测</a>
+            <a onclick="showAdminPage('prediction')" id="nav-prediction">🤖 AI积水预测</a>
+            <a onclick="showAdminPage('alerts')" id="nav-alerts">⚠️ 预警记录</a>
+            <a onclick="showAdminPage('history')" id="nav-history">📈 历史数据</a>
+            <a onclick="showAdminPage('datasource')" id="nav-datasource">📥 多源数据录入</a>
+            <a onclick="showAdminPage('dataanalysis')" id="nav-dataanalysis">📊 数据分析与可视化</a>
+            <a onclick="showAdminPage('reports')" id="nav-reports">📢 公众报料管理</a>
+            <a onclick="showAdminPage('admin')" id="nav-admin">⚙️ 系统管理</a>`;
     } else {
         sidebar.className = 'sidebar user-sidebar';
         badge.className = 'role-badge user';
         badge.textContent = '用户中心';
-        document.getElementById('current-user').textContent = '当前用户：' + user.username + '（用户）';
+        updateSidebarAvatar(user, isAdmin);
         document.getElementById('nav-menu').innerHTML = `
-            <a onclick="showUserPage('realtime')" class="active" id="nav-realtime">实时数据</a>
-            <a onclick="showUserPage('alerts')" id="nav-alerts">预警信息</a>
-            <a onclick="showUserPage('report')" id="nav-report">公众上报</a>
-            <a onclick="showUserPage('travel')" id="nav-travel">出行辅助</a>
-            <a onclick="showUserPage('profile')" id="nav-profile">个人信息中心</a>`;
+            <a onclick="showUserPage('realtime')" class="active" id="nav-realtime">📡 实时数据</a>
+            <a onclick="showUserPage('alerts')" id="nav-alerts">⚠️ 预警信息</a>
+            <a onclick="showUserPage('report')" id="nav-report">📝 公众上报</a>
+            <a onclick="showUserPage('travel')" id="nav-travel">🚗 出行辅助</a>
+            <a onclick="showUserPage('profile')" id="nav-profile">👤 个人信息中心</a>`;
     }
     if (isAdmin) showAdminPage('dashboard'); else showUserPage('realtime');
+    // 普通用户首次登录，资料为空时弹出完善信息提示
+    if (!isAdmin) {
+        const profileRes = apiGetProfile();
+        if (profileRes.code === 200) {
+            const d = profileRes.data;
+            if (!d.real_name && !d.phone && !d.email && !d.address) {
+                setTimeout(() => showProfileCompleteModal(), 800);
+            }
+        }
+    }
+}
+
+function showProfileCompleteModal() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.innerHTML = `<div class="modal-box" style="text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">📋</div>
+        <h3 style="color:#1a237e;margin-bottom:8px;">完善个人信息</h3>
+        <p style="color:#666;font-size:14px;margin-bottom:20px;line-height:1.6;">为了更好地为您提供服务与预警推送，<br>请先完善您的个人基本信息。</p>
+        <div style="display:grid;gap:10px;grid-template-columns:1fr 1fr;">
+            <div><label style="font-size:13px;color:#666;">👤 真实姓名</label><input type="text" id="modal-realname" placeholder="请输入姓名" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"></div>
+            <div><label style="font-size:13px;color:#666;">⚥ 性别</label><select id="modal-gender" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"><option value="" disabled selected>请选择</option><option value="男">男</option><option value="女">女</option></select></div>
+            <div><label style="font-size:13px;color:#666;">📱 手机号码</label><input type="text" id="modal-phone" placeholder="请输入手机号" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"></div>
+            <div><label style="font-size:13px;color:#666;">📧 邮箱</label><input type="text" id="modal-email" placeholder="请输入邮箱" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"></div>
+        </div>
+        <div style="margin-top:10px;"><label style="font-size:13px;color:#666;">🏠 详细地址</label><input type="text" id="modal-address" placeholder="请输入详细地址" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"></div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="saveProfileFromModal()">💾 保存信息</button>
+            <button class="btn" style="flex:1;background:#f5f5f5;color:#666;" onclick="skipProfileModal()">稍后再填</button>
+        </div>
+    </div>`;
+    overlay.classList.add('show');
+}
+
+function saveProfileFromModal() {
+    const realName = document.getElementById('modal-realname').value;
+    const gender = document.getElementById('modal-gender').value;
+    const phone = document.getElementById('modal-phone').value;
+    const email = document.getElementById('modal-email').value;
+    const address = document.getElementById('modal-address').value;
+    if (!realName && !phone) { showToast('⚠️ 请至少填写姓名和手机号'); return; }
+    const res = apiUpdateProfile({ real_name: realName, gender: gender, phone: phone, email: email, address: address, notify_sms: true, notify_push: true });
+    if (res.code === 200) {
+        document.getElementById('modal-overlay').classList.remove('show');
+        showToast('✅ 个人信息已保存');
+        if (document.getElementById('nav-profile').classList.contains('active')) loadUserProfile();
+    }
+}
+
+function skipProfileModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+    showToast('💡 您可以随时在个人信息中心完善资料');
 }
 
 function switchNavActive(navId) { document.querySelectorAll('#nav-menu a').forEach(a => a.classList.remove('active')); const el = document.getElementById(navId); if (el) el.classList.add('active'); }
 
-function showAdminPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { dashboard: loadAdminDashboard, devices: loadAdminDevices, map: loadAdminMap, prediction: loadAdminPrediction, alerts: loadAdminAlerts, history: loadAdminHistory, control: loadAdminControl, datasource: loadAdminDatasource, dispatch: loadAdminDispatch, reports: loadAdminReports, admin: loadAdminSystem }; content.innerHTML = getAdminPageHTML(name); if (loaders[name]) loaders[name](); }
+function showAdminPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { dashboard: loadAdminDashboard, devices: loadAdminDevices, map: loadAdminMap, prediction: loadAdminPrediction, alerts: loadAdminAlerts, history: loadAdminHistory, datasource: loadAdminDatasource, dataanalysis: loadAdminDataAnalysis, reports: loadAdminReports, admin: loadAdminSystem }; content.innerHTML = getAdminPageHTML(name); if (loaders[name]) loaders[name](); }
 function showUserPage(name) { switchNavActive('nav-' + name); const content = document.getElementById('main-content'); const loaders = { realtime: loadUserRealtime, alerts: loadUserAlerts, report: loadUserReport, travel: loadUserTravel, profile: loadUserProfile }; content.innerHTML = getUserPageHTML(name); if (loaders[name]) loaders[name](); }
 
 // ==================== 管理员页面 HTML ====================
 function getAdminPageHTML(name) {
     switch(name) {
         case 'dashboard': return `
-            <div class="page-header"><h1>系统概览</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDashboard()">刷新数据</button></div>
+            <div class="page-header"><h1>📊 系统概览</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDashboard()">刷新数据</button></div>
             <div class="admin-banner"><span>管理员模式</span> | 系统全部功能，可管理设备、用户和系统配置</div>
             <div class="stats-grid">
                 <div class="stat-card dashboard-stat-link" onclick="goToDevices()"><div class="icon" style="background:#e3f2fd;color:#1976d2;">📊</div><div class="value" id="stat-devices">-</div><div class="label">设备总数 →</div></div>
@@ -942,7 +1330,7 @@ function getAdminPageHTML(name) {
                 <table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>采集时间</th><th>快捷操作</th></tr></thead>
                 <tbody id="dashboard-device-list"></tbody></table></div></div>`;
         case 'devices': return `
-            <div class="page-header"><h1>设备管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddDeviceModal()">+ 添加设备</button>
+            <div class="page-header"><h1>📡 设备管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddDeviceModal()">+ 添加设备</button>
             <button class="btn btn-primary btn-sm" onclick="loadAdminDevices()">刷新</button></div></div>
             <div class="admin-banner"><span>管理员权限</span> | 添加和删除监测设备</div>
             <div class="data-table"><table><thead><tr><th>设备ID</th><th>名称</th><th>位置</th><th>经度</th><th>纬度</th><th>状态</th><th>安装日期</th><th>操作</th></tr></thead>
@@ -950,49 +1338,49 @@ function getAdminPageHTML(name) {
             <div class="module-action-bar">
                 <span style="font-size:13px;color:#999;">快捷导航：</span>
                 <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
+                <span class="nav-link-btn purple" onclick="goToDatasource()">📥 数据录入</span>
                 <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
                 <span class="nav-link-btn orange" onclick="goToHistory()">📈 历史数据</span>
-                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn red" onclick="showAdminPage('dataanalysis')">📊 数据分析</span>
             </div>`;
         case 'map': return `
-            <div class="page-header"><h1>地图监测</h1><button class="btn btn-primary btn-sm" onclick="loadAdminMap()">刷新</button></div>
-            <div class="detail-map-container" id="map-container" style="width:100%;height:520px;position:relative;"></div>
+            <div class="page-header"><h1>🗺️ 地图监测</h1><button class="btn btn-primary btn-sm" onclick="loadAdminMap()">刷新</button></div>
+            <div class="detail-map-container">
+                <div id="real-map"></div>
+            </div>
             <div class="map-legend">
                 <div class="legend-item"><div class="legend-dot" style="background:#4caf50;"></div> 正常（&lt;0.15m）</div>
                 <div class="legend-item"><div class="legend-dot" style="background:#ffeb3b;"></div> 关注（0.15~0.3m）</div>
                 <div class="legend-item"><div class="legend-dot" style="background:#ff9800;"></div> 预警（0.3~0.5m）</div>
                 <div class="legend-item"><div class="legend-dot" style="background:#f44336;"></div> 危险（≥0.5m）</div>
                 <div class="legend-item" style="color:#999;font-size:12px;">💡 点击监测点查看详细数据与实时画面</div>
-            </div>
-            <div class="map-sidebar-info" id="map-device-info" style="display:none;"></div>`;
+            </div>`;
         case 'prediction': return `
-            <div class="page-header"><h1>AI积水预测</h1></div>
+            <div class="page-header"><h1>🤖 AI积水预测</h1></div>
             <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择监测设备：</label>
             <select id="prediction-device"></select>
             <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="runPrediction()">执行AI预测</button>
             <div style="display:inline-flex;gap:4px;margin-left:12px;">
                 <span class="nav-link-btn blue" onclick="goToMap(document.getElementById('prediction-device')?.value)">🗺 地图</span>
                 <span class="nav-link-btn orange" onclick="goToHistory(document.getElementById('prediction-device')?.value)">📈 历史</span>
-                <span class="nav-link-btn purple" onclick="goToControl(document.getElementById('prediction-device')?.value)">🎛 操控</span>
             </div></div>
             <div class="prediction-result" id="prediction-result" style="display:none;">
                 <h3 style="color:#333;margin-bottom:16px;">预测结果（基于LSTM模型）</h3>
                 <div id="prediction-chart" class="prediction-chart"></div>
                 <div id="prediction-details" style="margin-top:16px;"></div></div>`;
         case 'alerts': return `
-            <div class="page-header"><h1>预警记录</h1><button class="btn btn-primary btn-sm" onclick="loadAdminAlerts()">刷新</button></div>
+            <div class="page-header"><h1>⚠️ 预警记录</h1><button class="btn btn-primary btn-sm" onclick="loadAdminAlerts()">刷新</button></div>
             <div class="admin-banner"><span>管理员</span> | 查看所有预警记录，可跳转至地图、设备操控和应急调度</div>
             <div id="alerts-list"></div>
             <div class="module-action-bar">
                 <span style="font-size:13px;color:#999;">快捷导航：</span>
                 <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
-                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn purple" onclick="goToDatasource()">📥 数据录入</span>
+                <span class="nav-link-btn red" onclick="showAdminPage('dataanalysis')">📊 数据分析</span>
                 <span class="nav-link-btn green" onclick="goToDatasource()">📥 多源数据</span>
             </div>`;
         case 'history': return `
-            <div class="page-header"><h1>历史数据统计</h1></div>
+            <div class="page-header"><h1>📈 历史数据统计</h1></div>
             <div class="info-card"><label style="font-size:14px;color:#666;margin-right:12px;">选择设备：</label>
             <select id="history-device"></select>
             <button class="btn btn-primary btn-sm" style="margin-left:12px;" onclick="loadHistory()">查询</button>
@@ -1000,24 +1388,23 @@ function getAdminPageHTML(name) {
             <div style="display:inline-flex;gap:4px;margin-left:12px;">
                 <span class="nav-link-btn blue" onclick="goToMap(document.getElementById('history-device')?.value)">🗺 地图</span>
                 <span class="nav-link-btn green" onclick="goToPrediction(document.getElementById('history-device')?.value)">🤖 AI预测</span>
-                <span class="nav-link-btn purple" onclick="goToControl(document.getElementById('history-device')?.value)">🎛 操控</span>
             </div></div>
             <div class="info-card"><h3 style="color:#333;margin-bottom:16px;">积水深度变化趋势</h3><div id="history-chart" class="prediction-chart"></div></div>
             <div class="data-table" style="margin-top:16px;"><table><thead><tr><th>采集时间</th><th>积水深度(m)</th><th>风险等级</th></tr></thead>
             <tbody id="history-list"></tbody></table></div>`;
         case 'reports': return `
-            <div class="page-header"><h1>公众报料管理</h1><button class="btn btn-primary btn-sm" onclick="loadAdminReports()">刷新</button></div>
+            <div class="page-header"><h1>📢 公众报料管理</h1><button class="btn btn-primary btn-sm" onclick="loadAdminReports()">刷新</button></div>
             <div class="admin-banner"><span>管理员</span> | 处理市民上报的积水信息，可关联应急调度</div>
             <div id="reports-list"></div>
             <div class="module-action-bar">
                 <span style="font-size:13px;color:#999;">快捷导航：</span>
                 <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn red" onclick="showAdminPage('dataanalysis')">📊 数据分析</span>
                 <span class="nav-link-btn" onclick="goToDatasource()">📥 多源数据</span>
                 <span class="nav-link-btn orange" onclick="goToAlerts()">⚠️ 预警记录</span>
             </div>`;
         case 'admin': return `
-            <div class="page-header"><h1>系统管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddUserModal()">+ 添加用户</button>
+            <div class="page-header"><h1>⚙️ 系统管理</h1><div><button class="btn btn-success btn-sm" onclick="showAddUserModal()">+ 添加用户</button>
             <button class="btn btn-primary btn-sm" onclick="loadAdminSystem()">刷新</button></div></div>
             <div class="admin-banner"><span>管理员控制台</span> | 用户管理、操作日志</div>
             <h3 style="color:#333;margin-bottom:12px;">用户管理</h3>
@@ -1030,43 +1417,38 @@ function getAdminPageHTML(name) {
                 <span style="font-size:13px;color:#999;">快捷导航：</span>
                 <span class="nav-link-btn" onclick="goToDashboard()">📊 系统概览</span>
                 <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
-                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
-            </div>`;
-        case 'control': return `
-            <div class="page-header"><h1>远程操控</h1><button class="btn btn-primary btn-sm" onclick="loadAdminControl()">刷新</button></div>
-            <div class="admin-banner"><span>管理员权限</span> | 远程操控监测设备：开关机、频率调整、传感器校准、紧急停机</div>
-            <div class="control-panel"><h3>设备操控面板</h3><div id="control-device-list"></div></div>
-            <div class="control-panel"><h3>指令发送记录</h3><div class="cmd-log" id="cmd-log-list"></div></div>
-            <div class="module-action-bar">
-                <span style="font-size:13px;color:#999;">快捷导航：</span>
-                <span class="nav-link-btn" onclick="goToDevices()">📋 设备管理</span>
-                <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
-                <span class="nav-link-btn orange" onclick="goToHistory()">📈 历史数据</span>
-                <span class="nav-link-btn red" onclick="goToDispatch()">🚨 应急调度</span>
+                <span class="nav-link-btn purple" onclick="goToDatasource()">📥 数据录入</span>
+                <span class="nav-link-btn red" onclick="showAdminPage('dataanalysis')">📊 数据分析</span>
             </div>`;
         case 'datasource': return `
-            <div class="page-header"><h1>多源数据录入</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDatasource()">刷新</button></div>
-            <div class="admin-banner"><span>管理员权限</span> | 多源数据接入与管理：传感器、气象局、手动录入、批量导入、公众上报、卫星遥感</div>
+            <div class="page-header"><h1>📥 多源数据录入</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDatasource()">刷新</button></div>
+            <div class="admin-banner"><span>管理员权限</span> | 多源数据采集与管理：传感器自动采集、气象局API、人工录入、批量导入、公众上报、卫星遥感</div>
+            <div id="datasource-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;"></div>
             <div class="weather-card" id="weather-display"></div>
-            <div class="control-panel"><h3>数据源接入状态</h3><div id="datasource-list"></div></div>
-            <div class="import-form"><h3>数据录入操作</h3>
+            <div class="control-panel"><h3>📡 传感器实时数据流 <span style="font-size:12px;font-weight:normal;color:#4caf50;margin-left:8px;">● 实时监控</span></h3>
+                <div class="data-table" style="box-shadow:none;">
+                    <table><thead><tr><th>设备ID</th><th>监测点名称</th><th>最新水位(m)</th><th>风险等级</th><th>采集时间</th><th>数据来源</th><th>链路状态</th></tr></thead>
+                    <tbody id="sensor-stream-list"></tbody></table>
+                </div>
+            </div>
+            <div class="control-panel"><h3>📡 数据源接入状态</h3><div id="datasource-list"></div></div>
+            <div class="import-form"><h3>📝 数据录入操作</h3>
                 <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;">
-                    <div class="info-card"><h3>手动录入积水数据</h3>
+                    <div class="info-card"><h3>✍️ 手动录入积水数据</h3>
                         <div style="display:grid;gap:8px;">
                             <label style="font-size:13px;color:#666;">设备ID</label><select id="manual-device" style="width:100%;"></select>
                             <label style="font-size:13px;color:#666;">积水深度(m)</label><input type="number" id="manual-water-level" step="0.01" placeholder="如 0.25" style="width:100%;">
                             <label style="font-size:13px;color:#666;">备注</label><input type="text" id="manual-note" placeholder="如 巡查发现新增积水" style="width:100%;">
                             <button class="btn btn-primary btn-sm" onclick="submitManualInput()">录入数据</button></div></div>
-                    <div class="info-card"><h3>批量CSV数据导入</h3>
+                    <div class="info-card"><h3>📁 批量CSV数据导入</h3>
                         <div style="display:grid;gap:8px;">
                             <label style="font-size:13px;color:#666;">CSV文件</label><input type="file" id="csv-file" accept=".csv" style="width:100%;font-size:13px;">
                             <label style="font-size:13px;color:#666;">数据类型</label><select id="csv-type" style="width:100%;"><option value="flood">积水监测数据</option><option value="weather">气象数据</option><option value="sensor">传感器校准数据</option></select>
                             <p style="font-size:12px;color:#999;margin-top:4px;">CSV格式：设备ID,积水深度(m),风险等级,采集时间</p>
                             <button class="btn btn-success btn-sm" onclick="submitBatchImport()">模拟导入</button></div></div>
                 </div></div>
-            <div class="control-panel"><h3>数据导入历史</h3><div id="import-history-list"></div></div>
+            <div class="control-panel"><h3>📊 数据质量监控</h3><div id="data-quality-panel"></div></div>
+            <div class="control-panel"><h3>📋 数据导入历史</h3><div id="import-history-list"></div></div>
             <div class="module-action-bar">
                 <span style="font-size:13px;color:#999;">数据录入后可前往：</span>
                 <span class="nav-link-btn orange" onclick="goToHistory()">📈 查看历史数据</span>
@@ -1074,26 +1456,29 @@ function getAdminPageHTML(name) {
                 <span class="nav-link-btn green" onclick="goToPrediction()">🤖 AI预测</span>
                 <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
             </div>`;
-        case 'dispatch': return `
-            <div class="page-header"><h1>应急指挥调度</h1><button class="btn btn-danger btn-sm" onclick="loadAdminDispatch()">刷新态势</button></div>
-            <div class="admin-banner" style="background:linear-gradient(90deg,#c62828,#b71c1c);"><span>应急指挥</span> | 宜春市袁州区当前内涝应急指挥调度中心</div>
-            <div class="resource-grid" id="dispatch-resources"></div>
-            <div class="control-panel"><h3>🚨 当前应急事件</h3><div id="dispatch-events"></div></div>
-            <div class="control-panel"><h3>救援力量调度</h3><div id="dispatch-teams"></div></div>
-            <div class="import-form"><h3>发布调度指令</h3>
-                <div style="display:grid;gap:12px;">
-                    <label style="font-size:13px;color:#666;">关联事件</label><select id="dispatch-event" style="width:100%;"></select>
-                    <label style="font-size:13px;color:#666;">指令内容</label><textarea id="dispatch-command" placeholder="如：立即派遣排水队前往秀江大桥" style="width:100%;"></textarea>
-                    <label style="font-size:13px;color:#666;">执行单位</label><select id="dispatch-team" style="width:100%;"></select>
-                    <button class="btn btn-danger" onclick="issueDispatchCommand()">🚀 发布调度指令</button></div></div>
-            <div class="control-panel"><h3>已发布调度指令</h3><div class="dispatch-cmd-list" id="dispatch-cmd-list"></div></div>
+        case 'dataanalysis': return `
+            <div class="page-header"><h1>📊 数据分析与可视化</h1><button class="btn btn-primary btn-sm" onclick="loadAdminDataAnalysis()">刷新</button></div>
+            <div class="admin-banner"><span>管理员权限</span> | 历史积水数据统计分析与多维度可视化展示</div>
+            <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:16px;">
+                <div class="control-panel"><h3>📈 各监测点平均积水深度</h3><div id="chart-avg-depth" style="height:200px;display:flex;align-items:flex-end;gap:8px;padding:16px 0;"></div></div>
+                <div class="control-panel"><h3>🟡 预警等级分布</h3><div id="chart-alert-pie" style="height:200px;display:flex;align-items:center;justify-content:center;gap:16px;padding:16px 0;"></div></div>
+            </div>
+            <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:16px;">
+                <div class="control-panel"><h3>📅 近7日预警趋势</h3><div id="chart-trend" style="height:200px;padding:16px 0;"></div></div>
+                <div class="control-panel"><h3>🏙️ 各区域风险排名</h3><div id="chart-risk-rank" style="padding:16px 0;"></div></div>
+            </div>
+            <div class="control-panel"><h3>📋 数据分析报告</h3>
+                <div style="display:grid;gap:12px;grid-template-columns:1fr 1fr 1fr;margin-top:8px;">
+                    <div class="info-card" style="border-left:4px solid #1976d2;"><h4 style="font-size:14px;margin-bottom:8px;">📊 本周统计</h4><div style="font-size:13px;color:#666;" id="report-week"></div></div>
+                    <div class="info-card" style="border-left:4px solid #f57c00;"><h4 style="font-size:14px;margin-bottom:8px;">⚠️ 高风险时段</h4><div style="font-size:13px;color:#666;" id="report-highrisk"></div></div>
+                    <div class="info-card" style="border-left:4px solid #388e3c;"><h4 style="font-size:14px;margin-bottom:8px;">✅ 系统运行状况</h4><div style="font-size:13px;color:#666;" id="report-system"></div></div>
+                </div>
+            </div>
             <div class="module-action-bar">
-                <span style="font-size:13px;color:#999;">应急联动：</span>
+                <span style="font-size:13px;color:#999;">分析结果可联动：</span>
+                <span class="nav-link-btn orange" onclick="goToHistory()">📈 详细历史数据</span>
                 <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图监测</span>
-                <span class="nav-link-btn purple" onclick="goToControl()">🎛 远程操控</span>
                 <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
-                <span class="nav-link-btn" onclick="goToReports()">📝 报料管理</span>
-                <span class="nav-link-btn green" onclick="goToDatasource()">📥 多源数据</span>
             </div>`;
         default: return '<p>页面不存在</p>';
     }
@@ -1103,7 +1488,7 @@ function getAdminPageHTML(name) {
 function getUserPageHTML(name) {
     switch(name) {
         case 'realtime': return `
-            <div class="page-header"><h1>实时数据查看</h1><button class="btn btn-primary btn-sm" onclick="loadUserRealtime()">刷新</button></div>
+            <div class="page-header"><h1>📡 实时数据查看</h1><button class="btn btn-primary btn-sm" onclick="loadUserRealtime()">刷新</button></div>
             <div class="user-banner"><span>实时监测</span> | 宜春市各监测点实时积水数据（每30秒自动更新）</div>
             <div class="alert-banner" id="realtime-alert-banner"></div>
             <div class="stats-grid" id="user-stats"></div>
@@ -1111,12 +1496,12 @@ function getUserPageHTML(name) {
                 <table><thead><tr><th>监测点</th><th>位置</th><th>积水深度</th><th>风险等级</th><th>更新时间</th><th>操作</th></tr></thead>
                 <tbody id="user-realtime-list"></tbody></table></div></div>`;
         case 'alerts': return `
-            <div class="page-header"><h1>预警信息接收</h1><button class="btn btn-primary btn-sm" onclick="loadUserAlerts()">刷新</button></div>
+            <div class="page-header"><h1>⚠️ 预警信息接收</h1><button class="btn btn-primary btn-sm" onclick="loadUserAlerts()">刷新</button></div>
             <div class="user-banner"><span>预警提醒</span> | 接收最新的内涝预警信息，请注意出行安全</div>
             <div class="alert-banner" id="alerts-warning-banner"></div>
             <div id="user-alerts-list"></div>`;
         case 'report': return `
-            <div class="page-header"><h1>公众上报</h1></div>
+            <div class="page-header"><h1>📝 公众上报</h1></div>
             <div class="user-banner"><span>积水上报</span> | 发现积水？立即上报，帮助其他市民安全出行</div>
             <div class="info-card"><h3>提交积水上报</h3><div style="display:grid;gap:12px;">
                 <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">您的姓名</label><input type="text" id="report-name" placeholder="如：张三" style="width:100%;"></div>
@@ -1127,28 +1512,105 @@ function getUserPageHTML(name) {
                 <div><button class="btn btn-primary" onclick="submitReport()">提交上报</button></div></div></div>
             <div class="info-card"><h3>我的上报记录</h3><div id="my-reports-list"></div></div>`;
         case 'travel': return `
-            <div class="page-header"><h1>出行辅助</h1><button class="btn btn-primary btn-sm" onclick="loadUserTravel()">刷新</button></div>
+            <div class="page-header"><h1>🚗 出行辅助</h1><button class="btn btn-primary btn-sm" onclick="loadUserTravel()">刷新</button></div>
             <div class="user-banner"><span>出行建议</span> | 实时积水数据 + 避难场所查询，助您安全出行</div>
             <div class="info-card"><h3>🚗 出行建议</h3><div id="travel-suggestions"></div></div>
             <div class="info-card"><h3>📍 区域积水情况</h3><div id="travel-areas"></div></div>
             <div class="info-card"><h3>🏠 避难场所查询</h3><p style="font-size:13px;color:#666;margin-bottom:12px;">以下为宜春市当前开放的避难安置场所，内涝严重时可前往避险</p>
             <div id="travel-shelters"></div></div>`;
         case 'profile': return `
-            <div class="page-header"><h1>个人信息中心</h1></div>
-            <div class="user-banner"><span>个人中心</span> | 管理您的账号信息</div>
-            <div class="info-card"><h3>基本资料</h3>
-                <div class="profile-row"><div class="label">用户名</div><div class="value" id="profile-username">-</div></div>
-                <div class="profile-row"><div class="label">角色</div><div class="value" id="profile-role">-</div></div>
-                <div class="profile-row"><div class="label">手机号</div><div class="value"><input type="text" id="profile-phone" style="width:200px;"></div></div>
-                <div class="profile-row"><div class="label">邮箱</div><div class="value"><input type="text" id="profile-email" style="width:250px;"></div></div>
-                <div class="profile-row"><div class="label">注册时间</div><div class="value" id="profile-created">-</div></div>
-                <div class="profile-row"><div class="label">我的上报</div><div class="value" id="profile-reports">-</div></div>
-                <div style="margin-top:16px;"><button class="btn btn-primary" onclick="updateProfile()">保存修改</button></div></div>
-            <div class="info-card"><h3>修改密码</h3><div style="display:grid;gap:12px;max-width:400px;">
-                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">旧密码</label><input type="password" id="old-pwd" style="width:100%;"></div>
-                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">新密码（至少6位）</label><input type="password" id="new-pwd" style="width:100%;"></div>
-                <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">确认新密码</label><input type="password" id="confirm-pwd" style="width:100%;"></div>
-                <div><button class="btn btn-primary" onclick="changePassword()">修改密码</button></div></div></div>`;
+            <div class="page-header"><h1>👤 个人信息中心</h1></div>
+            <div class="user-banner"><span>个人中心</span> | 管理您的账号信息与安全设置</div>
+            <div style="display:grid;gap:16px;grid-template-columns:1fr 2fr;margin-bottom:16px;">
+                <div class="info-card" style="text-align:center;padding:28px 20px;">
+                    <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1976d2,#42a5f5);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;margin:0 auto 12px;" id="profile-avatar">👤</div>
+                    <div style="font-size:18px;font-weight:bold;color:#333;" id="profile-realname">-</div>
+                    <div style="font-size:13px;color:#999;margin-top:4px;" id="profile-username-display">@-</div>
+                    <div style="margin-top:10px;"><span class="badge" id="profile-role-badge" style="padding:4px 16px;font-size:13px;">-</span></div>
+                    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f0f0f0;font-size:12px;color:#999;">📅 注册时间</div>
+                    <div style="font-size:14px;color:#333;font-weight:500;margin-top:4px;" id="profile-created-display">-</div>
+                    <div style="font-size:12px;color:#999;margin-top:4px;" id="profile-days">已加入 - 天</div>
+                    <div id="profile-avatar-hint" style="display:none;margin-top:12px;padding:8px 12px;background:#fff3e0;border-radius:6px;font-size:12px;color:#e65100;border:1px solid #ffcc80;">⚠️ 请完善个人资料</div>
+                </div>
+                <div style="display:grid;gap:12px;grid-template-columns:1fr 1fr 1fr 1fr;">
+                    <div class="info-card" style="text-align:center;margin:0;padding:20px 12px;">
+                        <div style="font-size:28px;">📝</div>
+                        <div style="font-size:24px;font-weight:bold;color:#1976d2;margin-top:8px;" id="stat-reports">-</div>
+                        <div style="font-size:12px;color:#999;margin-top:4px;">公众上报</div>
+                    </div>
+                    <div class="info-card" style="text-align:center;margin:0;padding:20px 12px;">
+                        <div style="font-size:28px;">⚠️</div>
+                        <div style="font-size:24px;font-weight:bold;color:#ff9800;margin-top:8px;" id="stat-alerts">-</div>
+                        <div style="font-size:12px;color:#999;margin-top:4px;">接收预警</div>
+                    </div>
+                    <div class="info-card" style="text-align:center;margin:0;padding:20px 12px;">
+                        <div style="font-size:28px;">🔑</div>
+                        <div style="font-size:24px;font-weight:bold;color:#4caf50;margin-top:8px;" id="stat-logins">-</div>
+                        <div style="font-size:12px;color:#999;margin-top:4px;">登录次数</div>
+                    </div>
+                    <div class="info-card" style="text-align:center;margin:0;padding:20px 12px;">
+                        <div style="font-size:28px;">🛡️</div>
+                        <div style="font-size:24px;font-weight:bold;color:#4caf50;margin-top:8px;" id="stat-security">-</div>
+                        <div style="font-size:12px;color:#999;margin-top:4px;">安全等级</div>
+                    </div>
+                </div>
+            </div>
+            <div class="info-card"><h3>📋 基本资料</h3>
+                <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr;">
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">👤 真实姓名</label><input type="text" id="profile-realname-input" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入真实姓名"></div>
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">⚥ 性别</label><select id="profile-gender" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;"><option value="" disabled selected>请选择</option><option value="男">男</option><option value="女">女</option></select></div>
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">📱 手机号码</label><input type="text" id="profile-phone" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入手机号"></div>
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">📧 电子邮箱</label><input type="text" id="profile-email" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入邮箱"></div>
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">📍 所在区域</label><input type="text" id="profile-region" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" value="宜春市袁州区" readonly></div>
+                    <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">🏠 详细地址</label><input type="text" id="profile-address" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入详细地址"></div>
+                </div>
+                <div style="margin-top:16px;"><button class="btn btn-primary" onclick="updateProfile()">💾 保存修改</button></div>
+            </div>
+            <div class="info-card"><h3>🔔 通知偏好设置</h3>
+                <div style="display:grid;gap:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f5f7fa;border-radius:8px;">
+                        <div><span style="font-size:16px;">📱</span> <strong style="font-size:14px;">短信通知</strong><div style="font-size:12px;color:#999;margin-top:2px;margin-left:24px;">接收预警短信提醒</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;"><input type="checkbox" id="notify-sms" style="opacity:0;width:0;height:0;"><span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:0.3s;"><span style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s;"></span></span></label>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f5f7fa;border-radius:8px;">
+                        <div><span style="font-size:16px;">📧</span> <strong style="font-size:14px;">邮件通知</strong><div style="font-size:12px;color:#999;margin-top:2px;margin-left:24px;">接收系统邮件推送</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;"><input type="checkbox" id="notify-email" style="opacity:0;width:0;height:0;"><span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:0.3s;"><span style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s;"></span></span></label>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f5f7fa;border-radius:8px;">
+                        <div><span style="font-size:16px;">🔔</span> <strong style="font-size:14px;">系统推送</strong><div style="font-size:12px;color:#999;margin-top:2px;margin-left:24px;">浏览器端实时推送通知</div></div>
+                        <label style="position:relative;display:inline-block;width:44px;height:24px;"><input type="checkbox" id="notify-push" style="opacity:0;width:0;height:0;"><span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:0.3s;"><span style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s;"></span></span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="info-card"><h3>🔒 账号安全</h3>
+                <div style="display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-bottom:16px;">
+                    <div style="padding:12px;background:#f5f7fa;border-radius:8px;display:flex;align-items:center;gap:12px;">
+                        <div style="font-size:24px;">🛡️</div>
+                        <div><div style="font-size:14px;font-weight:bold;color:#333;">密码强度</div><div style="font-size:12px;color:#999;margin-top:2px;" id="security-password">-</div></div>
+                    </div>
+                    <div style="padding:12px;background:#f5f7fa;border-radius:8px;display:flex;align-items:center;gap:12px;">
+                        <div style="font-size:24px;">🕐</div>
+                        <div><div style="font-size:14px;font-weight:bold;color:#333;">最近登录</div><div style="font-size:12px;color:#999;margin-top:2px;" id="security-lastlogin">-</div></div>
+                    </div>
+                    <div style="padding:12px;background:#f5f7fa;border-radius:8px;display:flex;align-items:center;gap:12px;">
+                        <div style="font-size:24px;">🌐</div>
+                        <div><div style="font-size:14px;font-weight:bold;color:#333;">登录IP</div><div style="font-size:12px;color:#999;margin-top:2px;" id="security-ip">-</div></div>
+                    </div>
+                    <div style="padding:12px;background:#f5f7fa;border-radius:8px;display:flex;align-items:center;gap:12px;">
+                        <div style="font-size:24px;">✅</div>
+                        <div><div style="font-size:14px;font-weight:bold;color:#333;">实名认证</div><div style="font-size:12px;color:#4caf50;margin-top:2px;">已认证 ✓</div></div>
+                    </div>
+                </div>
+                <div style="border-top:1px solid #f0f0f0;padding-top:16px;">
+                    <h4 style="font-size:14px;color:#333;margin-bottom:12px;">🔑 修改密码</h4>
+                    <div style="display:grid;gap:12px;max-width:400px;">
+                        <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">旧密码</label><input type="password" id="old-pwd" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入当前密码"></div>
+                        <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">新密码（至少6位）</label><input type="password" id="new-pwd" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请输入新密码"></div>
+                        <div><label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">确认新密码</label><input type="password" id="confirm-pwd" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;" placeholder="请再次输入新密码"></div>
+                        <div><button class="btn btn-primary" onclick="changePassword()">🔑 修改密码</button></div>
+                    </div>
+                </div>
+            </div>`;
         default: return '<p>页面不存在</p>';
     }
 }
@@ -1158,85 +1620,92 @@ function loadAdminDashboard() {
     const res = apiGetDashboardStats();
     if (res.code === 200) { const d = res.data; document.getElementById('stat-devices').textContent = d.total_devices; document.getElementById('stat-online').textContent = d.online_devices; document.getElementById('stat-alerts').textContent = d.alert_count; document.getElementById('stat-reports').textContent = d.report_count || 0; document.getElementById('risk-green').textContent = d.risk_stats.green || 0; document.getElementById('risk-yellow').textContent = d.risk_stats.yellow || 0; document.getElementById('risk-orange').textContent = d.risk_stats.orange || 0; document.getElementById('risk-red').textContent = d.risk_stats.red || 0; }
     const res2 = apiGetRiskAssess();
-    if (res2.code === 200) { document.getElementById('dashboard-device-list').innerHTML = res2.data.devices.map(d => `<tr class="clickable-row" onclick="goToMap('${d.device_id}')"><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td style="font-weight:600;color:${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#f57f17':'#4caf50'};">${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td><td>${d.collect_time||'-'}</td><td onclick="event.stopPropagation();"><div style="display:flex;gap:4px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺 地图</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖 预测</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToControl('${d.device_id}')">🎛 操控</span></div></td></tr>`).join(''); }
+    if (res2.code === 200) { document.getElementById('dashboard-device-list').innerHTML = res2.data.devices.map(d => `<tr class="clickable-row" onclick="goToMap('${d.device_id}')"><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td style="font-weight:600;color:${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#f57f17':'#4caf50'};">${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td><td>${d.collect_time||'-'}</td><td onclick="event.stopPropagation();"><div style="display:flex;gap:4px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺 地图</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖 预测</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToAlerts()">⚠️ 预警</span></div></td></tr>`).join(''); }
 }
 
-function loadAdminDevices() { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('device-list').innerHTML = res.data.map(d => `<tr><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td>${d.longitude||'-'}</td><td>${d.latitude||'-'}</td><td><span class="status-dot status-${d.status}"></span>${d.status==='online'?'在线':'离线'}</td><td>${d.install_date||'-'}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺</span><span class="nav-link-btn purple" onclick="goToControl('${d.device_id}')">🎛</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈</span><button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.device_id}')">删除</button></div></td></tr>`).join(''); } }
+function loadAdminDevices() { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('device-list').innerHTML = res.data.map(d => `<tr><td>${d.device_id}</td><td><strong>${d.name}</strong></td><td>${d.location||'-'}</td><td>${d.longitude||'-'}</td><td>${d.latitude||'-'}</td><td><span class="status-dot status-${d.status}"></span>${d.status==='online'?'在线':'离线'}</td><td>${d.install_date||'-'}</td><td><div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"><span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺</span><span class="nav-link-btn purple" onclick="showAdminPage('dataanalysis')">📊</span><span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖</span><span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈</span><button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.device_id}')">删除</button></div></td></tr>`).join(''); } }
 
 function showAddDeviceModal() { showModal(`<h3>添加监测设备</h3><label>设备ID</label><input type="text" id="new-device-id" placeholder="如 DEV007"><label>设备名称</label><input type="text" id="new-device-name" placeholder="如 秀江公园监测点"><label>安装位置</label><input type="text" id="new-device-location" placeholder="如 宜春市袁州区xxx路"><label>经度</label><input type="number" id="new-device-lng" step="0.0001" value="114.3800"><label>纬度</label><input type="number" id="new-device-lat" step="0.0001" value="27.8000"><div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="submitAddDevice()">确认添加</button></div>`); }
 function submitAddDevice() { const data = { device_id: document.getElementById('new-device-id').value, name: document.getElementById('new-device-name').value, location: document.getElementById('new-device-location').value, longitude: parseFloat(document.getElementById('new-device-lng').value), latitude: parseFloat(document.getElementById('new-device-lat').value) }; if (!data.device_id || !data.name) { showToast('设备ID和名称不能为空'); return; } const res = apiAddDevice(data); if (res.code === 200) { closeModal(); loadAdminDevices(); showToast('设备添加成功！'); } }
 function deleteDevice(id) { if (!confirm('确定删除设备 ' + id + '？')) return; const res = apiDeleteDevice(id); if (res.code === 200) { loadAdminDevices(); showToast('设备已删除'); } }
 
-// ==================== 详细地图 ====================
+// ==================== 真实地图（Leaflet + 高德瓦片） ====================
+var floodMap = null;
+var mapMarkers = {};
+
 function loadAdminMap() {
     const res = apiGetRiskAssess();
     if (res.code === 200) {
         const devices = res.data.devices;
-        const colors = { green: '#4caf50', yellow: '#ffeb3b', orange: '#ff9800', red: '#f44336' };
-        const minLng = Math.min(...devices.map(d => d.longitude)) - 0.02;
-        const maxLng = Math.max(...devices.map(d => d.longitude)) + 0.02;
-        const minLat = Math.min(...devices.map(d => d.latitude)) - 0.02;
-        const maxLat = Math.max(...devices.map(d => d.latitude)) + 0.02;
-        const svgW = 800, svgH = 500;
+        const riskColors = { green: '#4caf50', yellow: '#ffeb3b', orange: '#ff9800', red: '#f44336' };
+        const riskNames = { green: '正常', yellow: '关注', orange: '预警', red: '危险' };
 
-        // 宜春市道路网格背景
-        let mapSVG = `<svg width="100%" height="100%" viewBox="0 0 ${svgW} ${svgH}" style="background:linear-gradient(180deg,#d4e6f1 0%,#aed6f1 60%,#7fb3d5 100%);border-radius:12px;">
-            <!-- 背景网格 -->
-            <defs>
-                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="#c8dce8" stroke-width="0.5"/></pattern>
-                <filter id="shadow"><feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/></filter>
-            </defs>
-            <rect width="${svgW}" height="${svgH}" fill="url(#grid)"/>
+        // 销毁旧地图
+        if (floodMap) { floodMap.remove(); floodMap = null; }
+        mapMarkers = {};
 
-            <!-- 秀江河（横贯宜春市区的主要河流） -->
-            <path d="M 0,${svgH*0.45} C ${svgW*0.15},${svgH*0.42} ${svgW*0.3},${svgH*0.48} ${svgW*0.5},${svgH*0.44} S ${svgW*0.75},${svgH*0.42} ${svgW},${svgH*0.46}" fill="none" stroke="#5dade2" stroke-width="12" opacity="0.6"/>
-            <path d="M 0,${svgH*0.45} C ${svgW*0.15},${svgH*0.42} ${svgW*0.3},${svgH*0.48} ${svgW*0.5},${svgH*0.44} S ${svgW*0.75},${svgH*0.42} ${svgW},${svgH*0.46}" fill="none" stroke="#85c1e9" stroke-width="6" opacity="0.8"/>
-            <text x="${svgW*0.48}" y="${svgH*0.44 - 20}" text-anchor="middle" font-size="13" fill="#2471a3" font-weight="bold">秀 江</text>
-
-            <!-- 主要道路 -->
-            <line x1="0" y1="${svgH*0.3}" x2="${svgW}" y2="${svgH*0.3}" stroke="#bdc3c7" stroke-width="4" opacity="0.7"/>
-            <text x="${svgW*0.1}" y="${svgH*0.3 - 10}" font-size="10" fill="#7f8c8d">袁山东路</text>
-            <line x1="${svgW*0.4}" y1="0" x2="${svgW*0.4}" y2="${svgH}" stroke="#bdc3c7" stroke-width="4" opacity="0.7"/>
-            <text x="${svgW*0.4 + 5}" y="${svgH*0.15}" font-size="10" fill="#7f8c8d">卢洲北路</text>
-            <line x1="0" y1="${svgH*0.55}" x2="${svgW}" y2="${svgH*0.55}" stroke="#bdc3c7" stroke-width="3" opacity="0.7"/>
-            <text x="${svgW*0.1}" y="${svgH*0.55 - 10}" font-size="10" fill="#7f8c8d">秀江中路</text>
-            <line x1="${svgW*0.55}" y1="0" x2="${svgW*0.55}" y2="${svgH}" stroke="#bdc3c7" stroke-width="3" opacity="0.7"/>
-            <text x="${svgW*0.55 + 5}" y="${svgH*0.12}" font-size="10" fill="#7f8c8d">站前路</text>
-
-            <!-- 区域标注 -->
-            <rect x="${svgW*0.05}" y="${svgH*0.05}" width="${svgW*0.25}" height="${svgH*0.22}" rx="8" fill="#e8f6f3" opacity="0.3" stroke="#1abc9c" stroke-width="1"/>
-            <text x="${svgW*0.17}" y="${svgH*0.18}" text-anchor="middle" font-size="11" fill="#1abc9c">袁山公园片区</text>
-            <rect x="${svgW*0.3}" y="${svgH*0.35}" width="${svgW*0.2}" height="${svgH*0.18}" rx="8" fill="#fef9e7" opacity="0.3" stroke="#f39c12" stroke-width="1"/>
-            <text x="${svgW*0.4}" y="${svgH*0.48}" text-anchor="middle" font-size="11" fill="#f39c12">秀江大桥片区</text>
-            <rect x="${svgW*0.6}" y="${svgH*0.1}" width="${svgW*0.2}" height="${svgH*0.2}" rx="8" fill="#fdedec" opacity="0.3" stroke="#e74c3c" stroke-width="1"/>
-            <text x="${svgW*0.7}" y="${svgH*0.23}" text-anchor="middle" font-size="11" fill="#e74c3c">宜春站片区</text>
-            <rect x="${svgW*0.3}" y="${svgH*0.58}" width="${svgW*0.2}" height="${svgH*0.2}" rx="8" fill="#e8f6f3" opacity="0.3" stroke="#27ae60" stroke-width="1"/>
-            <text x="${svgW*0.4}" y="${svgH*0.72}" text-anchor="middle" font-size="11" fill="#27ae60">润达国际片区</text>
-
-            <!-- 标题 -->
-            <rect x="${svgW/2 - 130}" y="8" width="260" height="28" rx="6" fill="#1e3c72" opacity="0.85"/>
-            <text x="${svgW/2}" y="26" text-anchor="middle" font-size="15" fill="#fff" font-weight="bold">宜春市袁州区 · 内涝监测点分布图</text>`;
-
-        // 监测点
-        devices.forEach((d, i) => {
-            const x = ((d.longitude - minLng) / (maxLng - minLng)) * svgW;
-            const y = ((maxLat - d.latitude) / (maxLat - minLat)) * svgH;
-            const color = colors[d.risk_level];
-            const pulseAnim = d.risk_level === 'red' || d.risk_level === 'orange' ? `<circle cx="${x}" cy="${y}" r="20" fill="${color}" opacity="0.3"><animate attributeName="r" values="20;28;20" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite"/></circle>` : '';
-
-            mapSVG += `${pulseAnim}
-            <g style="cursor:pointer;" onclick="showMapPopup(${i}, '${d.device_id}', '${d.name}', ${d.water_level}, '${d.risk_level}', '${d.location}', ${d.longitude}, ${d.latitude})" filter="url(#shadow)">
-                <circle cx="${x}" cy="${y}" r="16" fill="${color}" stroke="#fff" stroke-width="3"/>
-                <text x="${x}" y="${y}" text-anchor="middle" dy="5" fill="#fff" font-size="11" font-weight="bold">${i+1}</text>
-                <text x="${x}" y="${y + 24}" text-anchor="middle" font-size="12" fill="#333" font-weight="bold">${d.name.replace('监测点','')}</text>
-                <text x="${x}" y="${y + 38}" text-anchor="middle" font-size="10" fill="${color}">${d.water_level}m · ${getRiskText(d.risk_level)}</text>
-            </g>`;
+        // 初始化 Leaflet 地图，中心点为宜春市袁州区
+        floodMap = L.map('real-map', {
+            center: [27.80, 114.38],
+            zoom: 13,
+            zoomControl: true,
+            attributionControl: false
         });
 
-        mapSVG += '</svg>';
-        document.getElementById('map-container').innerHTML = mapSVG;
-        document.getElementById('map-device-info').style.display = 'none';
-        mapPopupOpen = false;
+        // 使用OpenStreetMap瓦片（免费无需Key，全球可用）
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            subdomains: ['a', 'b', 'c'],
+            maxZoom: 19,
+            minZoom: 5
+        }).addTo(floodMap);
+
+        // 强制刷新地图尺寸（解决动态DOM插入后渲染问题）
+        setTimeout(() => { if (floodMap) floodMap.invalidateSize(); }, 200);
+
+        // 添加标题控件
+        var titleControl = L.control({ position: 'topleft' });
+        titleControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'map-title-control');
+            div.innerHTML = '<div style="background:rgba(30,60,114,0.9);color:#fff;padding:10px 24px;border-radius:12px;font-size:15px;font-weight:bold;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);white-space:nowrap;">🚨 宜春市袁州区 · 内涝监测实时地图</div>';
+            return div;
+        };
+        titleControl.addTo(floodMap);
+
+        // 添加监测点 Marker（加大尺寸，更醒目）
+        devices.forEach((d, i) => {
+            const color = riskColors[d.risk_level];
+            const riskName = riskNames[d.risk_level] || '正常';
+
+            // 大号醒目标记：圆点+编号+名称+水位
+            var iconHtml = `<div style="text-align:center;position:relative;">
+                ${(d.risk_level === 'red' || d.risk_level === 'orange') ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:${color};opacity:0.25;animation:pulse 2s infinite;"></div>` : ''}
+                <div style="width:40px;height:40px;border-radius:50%;background:${color};border:4px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:bold;margin:0 auto;line-height:1;">${i+1}</div>
+                <div style="margin-top:6px;font-size:13px;font-weight:700;color:#222;white-space:nowrap;background:rgba(255,255,255,0.85);padding:2px 8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.2);">${d.name.replace('监测点','')}</div>
+                <div style="font-size:12px;color:${color};font-weight:bold;background:rgba(255,255,255,0.85);padding:1px 6px;border-radius:4px;margin-top:2px;">${d.water_level}m · ${riskName}</div>
+            </div>`;
+
+            var icon = L.divIcon({
+                html: iconHtml,
+                className: 'flood-marker-icon',
+                iconSize: [100, 80],
+                iconAnchor: [50, 40]
+            });
+
+            var marker = L.marker([d.latitude, d.longitude], { icon: icon }).addTo(floodMap);
+
+            // 点击 Marker 弹出详情面板
+            marker.on('click', function() {
+                showMapPopup(i, d.device_id, d.name, d.water_level, d.risk_level, d.location, d.longitude, d.latitude);
+            });
+
+            mapMarkers[d.device_id] = marker;
+        });
+
+        // 自适应所有监测点的视野
+        if (devices.length > 0) {
+            var bounds = L.latLngBounds(devices.map(d => [d.latitude, d.longitude]));
+            floodMap.fitBounds(bounds.pad(0.3));
+        }
     }
 }
 
@@ -1268,13 +1737,11 @@ function showMapPopup(idx, deviceId, name, waterLevel, riskLevel, location, lng,
             <text x="${cw/2}" y="12" text-anchor="middle" font-size="9" fill="#999">近8次采集趋势</text></svg>`;
     }
 
-    // 模拟摄像头画面（CSS绘制）
+    // 模拟摄像头画面
     const waterH = waterHeights[riskLevel] || '15%';
     const now = new Date();
     const timeStr = formatTime(now).split(' ')[1];
-    // 生成模拟场景元素
     let sceneElements = '';
-    // 根据不同地点生成不同的场景
     if (name.includes('秀江大桥')) {
         sceneElements = `<rect x="0" y="${160 - 160*0.35}" width="300" height="${160*0.35}" fill="#aab7c4" opacity="0.8"/>
             <rect x="50" y="${160 - 160*0.35 - 30}" width="20" height="30" fill="#888"/>
@@ -1306,57 +1773,53 @@ function showMapPopup(idx, deviceId, name, waterLevel, riskLevel, location, lng,
     }
 
     const popupHTML = `
-        <div class="map-popup" id="map-popup" style="top:10px;left:50%;transform:translateX(-50%);">
-            <div class="popup-header">
-                <h3 style="color:${colors[riskLevel]};">📍 ${name}</h3>
-                <button class="popup-close" onclick="closeMapPopup()">✕</button>
+        <div style="background:#fff;border-radius:16px;padding:20px;width:360px;box-shadow:0 12px 40px rgba(0,0,0,0.2);border:2px solid #2196f3;position:relative;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <h3 style="font-size:16px;color:${colors[riskLevel]};font-weight:700;">📍 ${name}</h3>
+                <button onclick="closeMapPopup()" style="background:#f5f7fa;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;">✕</button>
             </div>
-            <div class="popup-data">
-                <div class="popup-data-item"><div class="val" style="color:${colors[riskLevel]};">${waterLevel}m</div><div class="lbl">积水深度</div></div>
-                <div class="popup-data-item"><div class="val">${getRiskBadge(riskLevel)}</div><div class="lbl">风险等级</div></div>
-                <div class="popup-data-item"><div class="val" style="color:#4caf50;">在线</div><div class="lbl">设备状态</div></div>
-                <div class="popup-data-item"><div class="val">${timeStr}</div><div class="lbl">更新时间</div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+                <div style="padding:8px;background:#f5f7fa;border-radius:6px;"><div style="font-size:18px;font-weight:bold;color:${colors[riskLevel]};">${waterLevel}m</div><div style="font-size:11px;color:#999;">积水深度</div></div>
+                <div style="padding:8px;background:#f5f7fa;border-radius:6px;"><div style="font-size:18px;font-weight:bold;">${getRiskBadge(riskLevel)}</div><div style="font-size:11px;color:#999;">风险等级</div></div>
+                <div style="padding:8px;background:#f5f7fa;border-radius:6px;"><div style="font-size:18px;font-weight:bold;color:#4caf50;">在线</div><div style="font-size:11px;color:#999;">设备状态</div></div>
+                <div style="padding:8px;background:#f5f7fa;border-radius:6px;"><div style="font-size:18px;font-weight:bold;">${timeStr}</div><div style="font-size:11px;color:#999;">更新时间</div></div>
             </div>
-            <div style="font-size:13px;color:#666;margin-bottom:8px;">📍 ${location} (${lng}, ${lat})</div>
-            <div class="popup-chart">${miniChart}</div>
-            <div class="popup-camera">
+            <div style="font-size:13px;color:#666;margin-bottom:8px;">📍 ${location} (${lng.toFixed(4)}, ${lat.toFixed(4)})</div>
+            <div style="height:80px;margin-bottom:12px;">${miniChart}</div>
+            <div style="height:160px;border-radius:8px;background:#1a1a2e;position:relative;overflow:hidden;">
                 <svg width="100%" height="100%" viewBox="0 0 300 160" style="border-radius:8px;">
-                    <!-- 夜视摄像头背景 -->
                     <rect width="300" height="160" fill="#1a1a2e"/>
-                    <!-- 场景元素 -->
                     ${sceneElements}
-                    <!-- 积水水面 -->
                     <rect x="0" y="${160 - 160*parseFloat(waterH.replace('%',''))/100}" width="300" height="${160*parseFloat(waterH.replace('%',''))/100}" fill="${colors[riskLevel]}" opacity="0.4">
                         <animate attributeName="opacity" values="0.4;0.5;0.4" dur="3s" repeatCount="indefinite"/>
                     </rect>
-                    <!-- 水面波纹 -->
                     <path d="M 0,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5} Q 50,${160 - 160*parseFloat(waterH.replace('%',''))/100} 100,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5} T 200,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 3} T 300,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5}" fill="none" stroke="${colors[riskLevel]}" stroke-width="1.5" opacity="0.7">
                         <animate attributeName="d" values="M 0,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5} Q 50,${160 - 160*parseFloat(waterH.replace('%',''))/100} 100,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5} T 200,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 3} T 300,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 5};M 0,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 3} Q 50,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 8} 100,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 3} T 200,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 6} T 300,${160 - 160*parseFloat(waterH.replace('%',''))/100 + 3}" dur="2s" repeatCount="indefinite"/>
                     </path>
                 </svg>
-                <div class="camera-overlay">
-                    <div class="camera-label">📷 ${name.replace('监测点','')} - 实时监控</div>
-                    <div class="camera-time" id="popup-camera-time">${timeStr}</div>
+                <div style="position:absolute;top:0;left:0;width:100%;height:100%;">
+                    <div style="position:absolute;top:8px;left:12px;color:#fff;font-size:11px;font-weight:bold;">📷 ${name.replace('监测点','')} - 实时监控</div>
+                    <div style="position:absolute;top:8px;right:12px;color:#0f0;font-size:11px;font-family:monospace;" id="popup-camera-time">${timeStr}</div>
                 </div>
             </div>
             <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-primary btn-sm" onclick="goToPrediction('${deviceId}')">🤖 AI预测</button>
                 <button class="btn btn-sm" style="background:#4caf50;color:#fff;" onclick="goToHistory('${deviceId}')">📈 历史数据</button>
-                <button class="btn btn-sm" style="background:#9c27b0;color:#fff;" onclick="goToControl('${deviceId}')">🎛 远程操控</button>
+                <button class="btn btn-sm" style="background:#9c27b0;color:#fff;" onclick="goToDatasource()">📥 数据录入</button>
                 <button class="btn btn-sm" style="background:#f44336;color:#fff;" onclick="alertToDispatch('${deviceId}')">🚨 应急调度</button>
                 <button class="btn btn-sm" style="background:#eee;color:#666;" onclick="closeMapPopup()">✕ 关闭</button>
             </div>
         </div>`;
 
-    const container = document.getElementById('map-container');
-    // 移除旧弹窗
-    const oldPopup = document.getElementById('map-popup');
-    if (oldPopup) oldPopup.remove();
-    // 添加弹窗
-    container.insertAdjacentHTML('beforeend', popupHTML);
+    // 用遮罩+居中弹窗方式显示
+    const overlay = document.getElementById('map-popup-overlay');
+    if (overlay) {
+        overlay.innerHTML = popupHTML;
+        overlay.classList.add('show');
+    }
     mapPopupOpen = true;
 
-    // 更新摄像头时间（每秒）
+    // 更新摄像头时间
     if (window._popupTimer) clearInterval(window._popupTimer);
     window._popupTimer = setInterval(() => {
         const el = document.getElementById('popup-camera-time');
@@ -1365,8 +1828,8 @@ function showMapPopup(idx, deviceId, name, waterLevel, riskLevel, location, lng,
 }
 
 function closeMapPopup() {
-    const popup = document.getElementById('map-popup');
-    if (popup) popup.remove();
+    const overlay = document.getElementById('map-popup-overlay');
+    if (overlay) { overlay.innerHTML = ''; overlay.classList.remove('show'); }
     if (window._popupTimer) clearInterval(window._popupTimer);
     mapPopupOpen = false;
 }
@@ -1388,51 +1851,60 @@ function goToHistory(deviceId) {
 function goToMap(deviceId) {
     if (typeof closeModal === 'function') closeModal();
     showAdminPage('map');
-    if (deviceId) setTimeout(() => { if (typeof showMapPopup === 'function') showMapPopup(deviceId); }, 500);
+    // 等地图加载完毕再操作
+    setTimeout(() => {
+        if (floodMap) floodMap.invalidateSize();
+        if (deviceId && mapMarkers[deviceId]) {
+            var latlng = mapMarkers[deviceId].getLatLng();
+            floodMap.setView(latlng, 16, { animate: true });
+            setTimeout(() => { mapMarkers[deviceId].fire('click'); }, 300);
+        } else if (floodMap && !deviceId) {
+            // 无指定设备时，居中显示所有标记
+            const res = apiGetRiskAssess();
+            if (res.code === 200 && res.data.devices.length > 0) {
+                var bounds = L.latLngBounds(res.data.devices.map(d => [d.latitude, d.longitude]));
+                floodMap.fitBounds(bounds.pad(0.3));
+            }
+        }
+    }, 400);
+}
 }
 
-function goToControl(deviceId) {
-    if (typeof closeModal === 'function') closeModal();
-    showAdminPage('control');
-    if (deviceId) { showToast('已定位到设备 ' + deviceId); setTimeout(() => { const el = document.getElementById('control-device-list'); if (el) { const cards = el.querySelectorAll('.device-control-card'); cards.forEach(c => c.style.border = '2px solid #e0e0e0'); } }, 100); }
-}
 
 function goToDevices() { if (typeof closeModal === 'function') closeModal(); showAdminPage('devices'); }
 function goToAlerts() { if (typeof closeModal === 'function') closeModal(); showAdminPage('alerts'); }
 function goToDatasource() { if (typeof closeModal === 'function') closeModal(); showAdminPage('datasource'); }
-function goToDispatch(eventId) { if (typeof closeModal === 'function') closeModal(); showAdminPage('dispatch'); if (eventId) setTimeout(() => { const sel = document.getElementById('dispatch-event'); if (sel) sel.value = eventId; }, 300); }
 function goToReports() { if (typeof closeModal === 'function') closeModal(); showAdminPage('reports'); }
 function goToDashboard() { if (typeof closeModal === 'function') closeModal(); showAdminPage('dashboard'); }
 function goToSystem() { if (typeof closeModal === 'function') closeModal(); showAdminPage('admin'); }
 
-// 从报料创建应急事件
-function reportToDispatch(reportId) {
-    const r = DB.reports.find(rp => rp.id === reportId);
-    if (!r) return;
-    closeModal();
-    showAdminPage('dispatch');
-    setTimeout(() => { const sel = document.getElementById('dispatch-event'); const cmd = document.getElementById('dispatch-command'); if (cmd) cmd.value = '核实报料：' + r.location + '（' + r.water_depth + '积水），请立即前往处置'; showToast('已关联报料 #' + reportId + '，请选择事件并确认指令'); }, 300);
+function reportToDispatch(id) {
+    if (typeof closeModal === 'function') closeModal();
+    showAdminPage('dataanalysis');
+    showToast('已跳转到数据分析页面');
 }
+
+// 从报料创建应急事件
 
 // 从预警跳转到应急调度
 function alertToDispatch(deviceId) {
     closeModal();
-    showAdminPage('dispatch');
-    setTimeout(() => { const cmd = document.getElementById('dispatch-command'); const dev = DB.devices.find(d => d.device_id === deviceId); if (cmd) cmd.value = (dev ? dev.name : deviceId) + ' 出现预警积水，请调度救援力量前往处置'; showToast('已关联设备 ' + deviceId + ' 预警'); }, 300);
+    showAdminPage('dataanalysis');
+    showToast('已跳转到数据分析');
 }
 
 function loadAdminPrediction() { if (!document.getElementById('prediction-device')) return; if (!document.getElementById('prediction-device').options.length) { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('prediction-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); } } }
 function runPrediction() { const deviceId = document.getElementById('prediction-device').value; if (!deviceId) { showToast('请选择设备'); return; } showToast('正在执行AI预测...'); setTimeout(() => { const res = apiGetPrediction(deviceId); if (res.code === 200) { document.getElementById('prediction-result').style.display = 'block'; drawPredictionChart(res.data); } }, 800); }
 function drawPredictionChart(data) { const history = data.history; const predictions = data.predictions; const allValues = [...history.map(h => h.value), ...predictions.map(p => p.predicted_water_level)]; const maxVal = Math.max(...allValues) * 1.2; const width = 600, height = 250, padding = 40; const points = allValues.length; const stepX = (width - padding * 2) / (points - 1); let historyPath = ''; history.forEach((h, i) => { const x = padding + i * stepX; const y = height - padding - ((h.value) / maxVal) * (height - padding * 2); historyPath += (i === 0 ? 'M' : 'L') + x + ',' + y + ' '; }); const lastX = padding + (history.length-1) * stepX; const lastY = height - padding - (history[history.length-1].value / maxVal) * (height - padding * 2); let predictPath = `M${lastX},${lastY} `; predictions.forEach((p, i) => { const x = padding + (history.length + i) * stepX; const y = height - padding - (p.predicted_water_level / maxVal) * (height - padding * 2); predictPath += `L${x},${y} `; }); document.getElementById('prediction-chart').innerHTML = `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;"><text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">积水深度预测趋势图</text><line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/><line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/><path d="${historyPath}" fill="none" stroke="#2196f3" stroke-width="2"/>${history.map((h,i) => { const x=padding+i*stepX; const y=height-padding-(h.value/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="#2196f3"/>`; }).join('')}<path d="${predictPath}" fill="none" stroke="#ff9800" stroke-width="2" stroke-dasharray="5,3"/>${predictions.map((p,i) => { const x=padding+(history.length+i)*stepX; const y=height-padding-(p.predicted_water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="4" fill="${p.risk_level==='red'?'#f44336':p.risk_level==='orange'?'#ff9800':'#4caf50'}"/>`; }).join('')}</svg>`; document.getElementById('prediction-details').innerHTML = predictions.map(p => `<div style="display:inline-block;padding:12px 20px;margin-right:12px;background:#f5f7fa;border-radius:8px;"><div style="font-size:12px;color:#999;">未来 ${p.hour} 小时</div><div style="font-size:20px;font-weight:bold;color:${p.risk_level==='red'?'#c62828':p.risk_level==='orange'?'#e65100':'#2e7d32'};">${p.predicted_water_level}m</div>${getRiskBadge(p.risk_level)}</div>`).join(''); }
 
-function loadAdminAlerts() { const res = apiGetAlerts(); if (res.code === 200) { const div = document.getElementById('alerts-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无预警记录</div>' : res.data.map(a => `<div class="alert-item"><div class="left"><div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div><div class="msg">${a.message}</div><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${a.device_id}')">🗺 地图定位</span><span class="nav-link-btn green" onclick="goToPrediction('${a.device_id}')">🤖 AI预测</span><span class="nav-link-btn orange" onclick="goToHistory('${a.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToControl('${a.device_id}')">🎛 操控</span><span class="nav-link-btn red" onclick="alertToDispatch('${a.device_id}')">🚨 应急调度</span></div></div><div class="time">${a.created_at||''}</div></div>`).join(''); } }
+function loadAdminAlerts() { const res = apiGetAlerts(); if (res.code === 200) { const div = document.getElementById('alerts-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无预警记录</div>' : res.data.map(a => `<div class="alert-item"><div class="left"><div class="device">${a.device_name||a.device_id} ${getRiskBadge(a.risk_level)}</div><div class="msg">${a.message}</div><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;"><span class="nav-link-btn blue" onclick="goToMap('${a.device_id}')">🗺 地图定位</span><span class="nav-link-btn green" onclick="goToPrediction('${a.device_id}')">🤖 AI预测</span><span class="nav-link-btn orange" onclick="goToHistory('${a.device_id}')">📈 历史</span><span class="nav-link-btn purple" onclick="goToAlerts()">⚠️ 预警</span><span class="nav-link-btn red" onclick="alertToDispatch('${a.device_id}')">📊 数据分析</span></div></div><div class="time">${a.created_at||''}</div></div>`).join(''); } }
 
 function loadAdminHistory() { if (!document.getElementById('history-device')) return; if (!document.getElementById('history-device').options.length) { const res = apiGetDevices(); if (res.code === 200) { document.getElementById('history-device').innerHTML = res.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); } } loadHistory(); }
 function loadHistory() { const deviceId = document.getElementById('history-device')?.value; if (!deviceId) return; const res = apiGetHistory(deviceId); if (res.code === 200) { const data = res.data.reverse(); drawHistoryChart(data); document.getElementById('history-list').innerHTML = data.map(d => `<tr><td>${d.time}</td><td>${d.water_level}m</td><td>${getRiskBadge(d.risk_level)}</td></tr>`).join(''); } }
 function drawHistoryChart(data) { const chartDiv = document.getElementById('history-chart'); if (!data.length) { chartDiv.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无数据</p>'; return; } const values = data.map(d => d.water_level); const maxVal = Math.max(...values) * 1.2; const width = 600, height = 250, padding = 40; const stepX = (width - padding * 2) / Math.max(data.length - 1, 1); let path = ''; data.forEach((d, i) => { const x = padding + i * stepX; const y = height - padding - (d.water_level / maxVal) * (height - padding * 2); path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' '; }); chartDiv.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" style="background:#fff;border-radius:8px;"><text x="${width/2}" y="20" text-anchor="middle" font-size="14" fill="#333" font-weight="bold">24小时积水深度变化</text><line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="#ddd"/><line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height-padding}" stroke="#ddd"/><path d="${path}" fill="none" stroke="#2196f3" stroke-width="2"/>${data.map((d,i) => { const x=padding+i*stepX; const y=height-padding-(d.water_level/maxVal)*(height-padding*2); return `<circle cx="${x}" cy="${y}" r="3" fill="${d.risk_level==='red'?'#f44336':d.risk_level==='orange'?'#ff9800':d.risk_level==='yellow'?'#ffeb3b':'#4caf50'}"/>`; }).join('')}</svg>`; }
 function exportData() { const deviceId = document.getElementById('history-device')?.value; if (!deviceId) { showToast('请选择设备'); return; } const res = apiExportData(deviceId); if (res.code === 200) { const blob = new Blob([res.data.content], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = res.data.filename; a.click(); URL.revokeObjectURL(url); showToast('导出成功！'); } }
 
-function loadAdminReports() { const res = apiGetAdminReports(); if (res.code === 200) { const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' }; const div = document.getElementById('reports-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无公众报料</div>' : res.data.map(r => `<div class="report-card ${r.status}"><div style="display:flex;justify-content:space-between;align-items:start;"><div><strong>${r.reporter_name}</strong> <span style="color:#999;font-size:12px;">${r.reporter_phone||''}</span> <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}" style="margin-left:8px;">${statusMap[r.status]||r.status}</span></div><div style="color:#999;font-size:12px;">${r.created_at||''}</div></div><div style="margin-top:8px;font-size:14px;color:#333;"><strong>位置：</strong>${r.location} <strong>程度：</strong>${r.water_depth}</div><div style="margin-top:4px;font-size:13px;color:#666;">${r.description}</div>${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>回复：</strong>${r.admin_reply}</div>` : ''}<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="showReplyModal(${r.id})">处理</button><span class="nav-link-btn red" onclick="reportToDispatch(${r.id})">🚨 转应急调度</span><span class="nav-link-btn blue" onclick="goToMap()">🗺 地图查看</span></div></div>`).join(''); } }
+function loadAdminReports() { const res = apiGetAdminReports(); if (res.code === 200) { const statusMap = { pending: '待处理', verified: '已核实', resolved: '已解决' }; const div = document.getElementById('reports-list'); div.innerHTML = res.data.length === 0 ? '<div style="text-align:center;padding:40px;color:#999;">暂无公众报料</div>' : res.data.map(r => `<div class="report-card ${r.status}"><div style="display:flex;justify-content:space-between;align-items:start;"><div><strong>${r.reporter_name}</strong> <span style="color:#999;font-size:12px;">${r.reporter_phone||''}</span> <span class="badge badge-${r.status==='pending'?'orange':r.status==='verified'?'yellow':'green'}" style="margin-left:8px;">${statusMap[r.status]||r.status}</span></div><div style="color:#999;font-size:12px;">${r.created_at||''}</div></div><div style="margin-top:8px;font-size:14px;color:#333;"><strong>位置：</strong>${r.location} <strong>程度：</strong>${r.water_depth}</div><div style="margin-top:4px;font-size:13px;color:#666;">${r.description}</div>${r.admin_reply ? `<div style="margin-top:8px;padding:8px;background:#e3f2fd;border-radius:6px;font-size:13px;"><strong>回复：</strong>${r.admin_reply}</div>` : ''}<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="showReplyModal(${r.id})">处理</button><span class="nav-link-btn red" onclick="reportToDispatch(${r.id})">📝 处理报料</span><span class="nav-link-btn blue" onclick="goToMap()">🗺 地图查看</span></div></div>`).join(''); } }
 function showReplyModal(id) { showModal(`<h3>处理报料</h3><label>处理状态</label><select id="reply-status" style="width:100%;"><option value="verified">已核实</option><option value="resolved">已解决</option></select><label>回复内容</label><textarea id="reply-content" placeholder="回复市民..." style="width:100%;"></textarea><div class="modal-btns"><button class="btn" style="background:#eee;" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="submitReply(${id})">确认</button></div>`); }
 function submitReply(id) { const res = apiUpdateReport(id, document.getElementById('reply-status').value, document.getElementById('reply-content').value); if (res.code === 200) { closeModal(); loadAdminReports(); showToast('报料处理成功'); } }
 
@@ -1602,70 +2074,157 @@ function loadUserTravel() {
     }
 }
 
-function loadUserProfile() { const res = apiGetProfile(); if (res.code === 200) { const d = res.data; document.getElementById('profile-username').textContent = d.username; document.getElementById('profile-role').textContent = d.role === 'admin' ? '管理员' : '用户'; document.getElementById('profile-phone').value = d.phone || ''; document.getElementById('profile-email').value = d.email || ''; document.getElementById('profile-created').textContent = d.created_at; document.getElementById('profile-reports').textContent = d.report_count + ' 条'; } }
-function updateProfile() { const res = apiUpdateProfile(document.getElementById('profile-phone').value, document.getElementById('profile-email').value); if (res.code === 200) showToast('信息更新成功'); }
+function loadUserProfile() {
+    const res = apiGetProfile();
+    if (res.code === 200) {
+        const d = res.data;
+        // 头像区域：有姓名显示姓名，没有则显示用户名
+        const displayName = d.real_name || d.username;
+        document.getElementById('profile-realname').textContent = displayName;
+        document.getElementById('profile-username-display').textContent = '@' + d.username;
+        // 如果没有真实姓名，头像区显示提示
+        const avatarHint = document.getElementById('profile-avatar-hint');
+        if (avatarHint) {
+            avatarHint.style.display = d.real_name ? 'none' : 'block';
+            avatarHint.textContent = '请完善个人资料';
+        }
+        const roleBadge = document.getElementById('profile-role-badge');
+        if (d.role === 'admin') { roleBadge.textContent = '🔑 管理员'; roleBadge.className = 'badge badge-red'; } else { roleBadge.textContent = '👤 普通用户'; roleBadge.className = 'badge badge-green'; }
+        document.getElementById('profile-created-display').textContent = d.created_at;
+        const createdDate = new Date(d.created_at.replace(/-/g, '/'));
+        const days = Math.floor((Date.now() - createdDate.getTime()) / 86400000);
+        document.getElementById('profile-days').textContent = '已加入 ' + days + ' 天';
+        // 统计卡片
+        document.getElementById('stat-reports').textContent = d.report_count;
+        document.getElementById('stat-alerts').textContent = d.alert_count;
+        document.getElementById('stat-logins').textContent = d.login_count;
+        document.getElementById('stat-security').textContent = d.security_level;
+        // 基本资料：空值不预填，显示placeholder提示
+        document.getElementById('profile-realname-input').value = d.real_name || '';
+        const genderSel = document.getElementById('profile-gender');
+        if (genderSel) genderSel.value = d.gender || '';
+        if (!d.gender) { genderSel.selectedIndex = -1; } // 不选中默认项
+        document.getElementById('profile-phone').value = d.phone || '';
+        document.getElementById('profile-email').value = d.email || '';
+        const addrInput = document.getElementById('profile-address');
+        if (addrInput) addrInput.value = d.address || '';
+        // 通知偏好
+        document.getElementById('notify-sms').checked = d.notify_sms;
+        document.getElementById('notify-email').checked = d.notify_email;
+        document.getElementById('notify-push').checked = d.notify_push;
+        // 账号安全
+        document.getElementById('security-password').textContent = d.security_level === '低' ? '⚠️ 强度：低（建议修改为8位以上含字母数字的密码）' : '强度：' + d.security_level + '（建议使用8位以上含字母数字的密码）';
+        document.getElementById('security-lastlogin').textContent = d.last_login;
+        document.getElementById('security-ip').textContent = d.last_login_ip;
+    }
+}
+function updateProfile() {
+    const data = {};
+    data.phone = document.getElementById('profile-phone').value;
+    data.email = document.getElementById('profile-email').value;
+    const realNameEl = document.getElementById('profile-realname-input');
+    if (realNameEl) data.real_name = realNameEl.value;
+    const genderEl = document.getElementById('profile-gender');
+    if (genderEl) data.gender = genderEl.value;
+    const addrEl = document.getElementById('profile-address');
+    if (addrEl) data.address = addrEl.value;
+    const smsEl = document.getElementById('notify-sms');
+    if (smsEl) data.notify_sms = smsEl.checked;
+    const emailEl = document.getElementById('notify-email');
+    if (emailEl) data.notify_email = emailEl.checked;
+    const pushEl = document.getElementById('notify-push');
+    if (pushEl) data.notify_push = pushEl.checked;
+    // 验证：至少填一个字段
+    const hasData = data.real_name || data.phone || data.email || data.address || data.gender;
+    if (!hasData) { showToast('⚠️ 请至少填写一项个人信息'); return; }
+    const res = apiUpdateProfile(data);
+    if (res.code === 200) {
+        showToast('✅ 信息更新成功');
+        loadUserProfile(); // 刷新显示
+    }
+}
 function changePassword() { const oldPwd = document.getElementById('old-pwd').value; const newPwd = document.getElementById('new-pwd').value; const confirmPwd = document.getElementById('confirm-pwd').value; if (!oldPwd || !newPwd) { showToast('请填写旧密码和新密码'); return; } if (newPwd !== confirmPwd) { showToast('两次输入的新密码不一致'); return; } if (newPwd.length < 6) { showToast('新密码至少6位'); return; } const res = apiChangePassword(oldPwd, newPwd); if (res.code === 200) { showToast('密码修改成功'); document.getElementById('old-pwd').value = ''; document.getElementById('new-pwd').value = ''; document.getElementById('confirm-pwd').value = ''; } }
 
-// ==================== 远程操控 ====================
-function loadAdminControl() {
-    const res = apiGetDeviceControl();
-    if (res.code === 200) {
-        const div = document.getElementById('control-device-list');
-        div.innerHTML = res.data.map(d => {
-            const t = d.telemetry || {};
-            const cmds = d.recent_commands || [];
-            return `
-            <div class="device-control-card">
-                <div class="header">
-                    <div><div class="name">${d.device_id} - ${d.name}</div><div style="font-size:12px;color:#999;">${d.location}</div></div>
-                    <div><span class="badge badge-${d.status==='online'?'green':'red'}">${d.power_status||'运行中'}</span> <span style="font-size:12px;color:#999;margin-left:8px;">采集频率：${d.sampling_freq||'5分钟'}</span></div>
-                </div>
-                <div class="telemetry-grid">
-                    <div class="telemetry-item"><div class="val">${t.cpu||'-'}</div><div class="lbl">CPU占用</div></div>
-                    <div class="telemetry-item"><div class="val">${t.memory||'-'}</div><div class="lbl">内存占用</div></div>
-                    <div class="telemetry-item"><div class="val">${t.battery||'-'}</div><div class="lbl">电池电量</div></div>
-                    <div class="telemetry-item"><div class="val">${t.signal||'-'}</div><div class="lbl">信号强度</div></div>
-                </div>
-                <div style="font-size:12px;color:#666;margin-bottom:8px;">温度：${t.temperature||'-'} | 运行时长：${t.uptime||'-'} | 固件版本：${t.firmware||'-'} | 经纬度：${d.longitude}, ${d.latitude}</div>
-                <div class="control-btns">
-                    <button class="btn btn-primary btn-sm" onclick="sendCommand('${d.device_id}','设备重启','软重启')">🔄 重启</button>
-                    <button class="btn btn-sm" style="background:#ff9800;color:#fff;" onclick="sendCommand('${d.device_id}','调整采集频率','5分钟→10分钟')">⏱ 10分钟</button>
-                    <button class="btn btn-sm" style="background:#2196f3;color:#fff;" onclick="sendCommand('${d.device_id}','调整采集频率','10分钟→5分钟')">⏱ 5分钟</button>
-                    <button class="btn btn-sm" style="background:#9c27b0;color:#fff;" onclick="sendCommand('${d.device_id}','紧急校准','水位传感器校准')">🎯 校准</button>
-                    <button class="btn btn-sm" style="background:#4caf50;color:#fff;" onclick="sendCommand('${d.device_id}','灯光控制','夜间补光灯开启')">💡 补光灯</button>
-                    ${d.status==='online' ? `<button class="btn btn-danger btn-sm" onclick="sendCommand('${d.device_id}','紧急停机','设备紧急断电')">⛔ 紧急停机</button>` : `<button class="btn btn-success btn-sm" onclick="sendCommand('${d.device_id}','开机','设备恢复供电')">▶ 开机</button>`}
-                </div>
-                ${cmds.length > 0 ? `<div style="margin-top:12px;"><div style="font-size:12px;color:#999;margin-bottom:4px;">最近指令：</div>${cmds.slice(0,3).map(c => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f0f0f0;"><span class="cmd-${c.result}">${c.result==='success'?'✅':'❌'}</span> ${c.command}(${c.params}) - ${c.operator} ${c.created_at}</div>`).join('')}</div>` : ''}
-                <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
-                    <span class="nav-link-btn blue" onclick="goToMap('${d.device_id}')">🗺 地图</span>
-                    <span class="nav-link-btn" onclick="goToDevices()">📋 设备信息</span>
-                    <span class="nav-link-btn green" onclick="goToPrediction('${d.device_id}')">🤖 预测</span>
-                    <span class="nav-link-btn orange" onclick="goToHistory('${d.device_id}')">📈 历史</span>
-                </div>
-            </div>`;
+function loadAdminDataAnalysis() {
+    // 模拟数据分析
+    const devices = ['袁山公园', '秀江大桥', '宜春火车站', '润达国际', '明月山机场', '宜春学院'];
+    const avgdepths = [0.08, 0.32, 0.05, 0.18, 0.02, 0.12];
+    
+    // 平均积水深度柱状图
+    const chart1 = document.getElementById('chart-avg-depth');
+    if (chart1) {
+        chart1.innerHTML = devices.map((d, i) => {
+            const h = avgdepths[i] * 200;
+            const color = avgdepths[i] > 0.3 ? '#f44336' : avgdepths[i] > 0.15 ? '#ff9800' : '#4caf50';
+            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;"><div style="height:' + h + 'px;width:80%;background:' + color + ';border-radius:4px 4px 0 0;transition:all 0.5s;"></div><div style="font-size:10px;color:#999;margin-top:4px;writing-mode:vertical-rl;width:20px;overflow:hidden;">' + d.substring(0, 4) + '</div></div>';
         }).join('');
-
-        // 指令发送记录
-        const logRes = apiGetCommandLog();
-        if (logRes.code === 200) {
-            document.getElementById('cmd-log-list').innerHTML = logRes.data.length === 0 ? '<div style="text-align:center;padding:20px;color:#999;">暂无指令记录</div>' :
-                logRes.data.slice(0, 20).map(c => {
-                    const dev = DB.devices.find(d => d.device_id === c.device_id);
-                    const resultBadge = c.result === 'success' ? '<span class="cmd-success">✅ 成功</span>' : c.result === 'failed' ? '<span class="cmd-failed">❌ 失败</span>' : '<span class="cmd-pending">⏳ 待确认</span>';
-                    return `<div class="cmd-log-item"><div style="flex:1;"><strong>${dev ? dev.name : c.device_id}</strong> ${c.command}(${c.params})</div><div style="width:80px;">${resultBadge}</div><div style="width:80px;font-size:12px;color:#999;">${c.operator}</div><div style="width:140px;font-size:12px;color:#999;">${c.created_at}</div></div>`;
-                }).join('');
-        }
     }
+    
+    // 预警等级分布饼图（用div模拟）
+    const chart2 = document.getElementById('chart-alert-pie');
+    if (chart2) {
+        chart2.innerHTML = '<div style="display:flex;align-items:center;gap:16px;"><div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#4caf50 0% 65%,#ff9800 65% 85%,#f44336 85% 95%,#c62828 95% 100%);"></div><div style="font-size:13px;"><div><span style="color:#4caf50;">●</span> 正常 65%</div><div><span style="color:#ff9800;">●</span> 关注 20%</div><div><span style="color:#f44336;">●</span> 预警 10%</div><div><span style="color:#c62828;">●</span> 危险 5%</div></div></div>';
+    }
+    
+    // 近7日趋势（用div模拟折线）
+    const chart3 = document.getElementById('chart-trend');
+    if (chart3) {
+        const days = ['6/21', '6/22', '6/23', '6/24', '6/25', '6/26', '今天'];
+        const counts = [2, 5, 3, 8, 12, 6, 4];
+        chart3.innerHTML = '<div style="display:flex;align-items:flex-end;gap:8px;height:150px;padding:8px 0;">' + days.map((d, i) => '<div style="flex:1;display:flex;flex-direction:column;align-items:center;"><div style="height:' + (counts[i] * 12) + 'px;width:80%;background:#1976d2;border-radius:4px 4px 0 0;"></div><div style="font-size:10px;color:#999;margin-top:4px;">' + d + '</div></div>').join('') + '</div>';
+    }
+    
+    // 风险排名
+    const chart4 = document.getElementById('chart-risk-rank');
+    if (chart4) {
+        const ranks = [{'name': '秀江大桥', 'risk': 85}, {'name': '润达国际', 'risk': 60}, {'name': '袁山公园', 'risk': 40}, {'name': '宜春火车站', 'risk': 25}, {'name': '宜春学院', 'risk': 20}, {'name': '明月山机场', 'risk': 10}];
+        chart4.innerHTML = ranks.map((r, i) => '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:12px;color:#999;width:20px;">' + (i + 1) + '</span><span style="font-size:13px;flex:1;">' + r.name + '</span><div style="flex:1;background:#f0f0f0;border-radius:4px;overflow:hidden;"><div style="width:' + r.risk + '%;height:20px;background:' + (r.risk > 70 ? '#f44336' : r.risk > 40 ? '#ff9800' : '#4caf50') + ';transition:all 0.5s;"></div></div><span style="font-size:12px;color:#999;width:40px;text-align:right;">' + r.risk + '%</span></div>').join('');
+    }
+    
+    // 分析报告
+    const el1 = document.getElementById('report-week');
+    if (el1) el1.innerHTML = '📊 本周共产生预警 <strong>23次</strong><br>📍 最高风险点：<strong>秀江大桥</strong><br>🌧️ 关联降雨天数：<strong>3天</strong>';
+    
+    const el2 = document.getElementById('report-highrisk');
+    if (el2) el2.innerHTML = '⏰ 高风险时段：<strong>14:00-18:00</strong><br>🌧️ 降雨后<strong>2小时</strong>风险最高<br>📅 周日风险最低';
+    
+    const el3 = document.getElementById('report-system');
+    if (el3) el3.innerHTML = '✅ 设备在线率：<strong>100%</strong><br>📡 数据上传成功率：<strong>99.2%</strong><br>🤖 AI预测准确率：<strong>87.5%</strong>';
+    
+    showToast('✅ 数据分析已更新');
 }
 
 function sendCommand(deviceId, command, params) {
-    if (!confirm(`确认向设备 ${deviceId} 发送指令：${command}(${params})？`)) return;
-    const res = apiSendCommand(deviceId, command, params);
-    if (res.code === 200) { showToast(res.message); loadAdminControl(); }
+    if (!confirm('确认向设备 ' + deviceId + ' 发送指令：' + command + '(' + params + ')？')) return;
+    showToast('指令已发送：' + command + ' (' + params + ')');
 }
 
 // ==================== 多源数据录入 ====================
 function loadAdminDatasource() {
+    // 统计卡片
+    const statsDiv = document.getElementById('datasource-stats');
+    if (statsDiv) {
+        const activeSources = DB.dataSources.filter(s => s.status === 'active').length;
+        const todayCount = DB.flood_data.length;
+        statsDiv.innerHTML = `
+            <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#e3f2fd;display:flex;align-items:center;justify-content:center;font-size:20px;">📡</div>
+                <div><div style="font-size:22px;font-weight:bold;color:#1976d2;">${todayCount}</div><div style="font-size:12px;color:#999;">今日采集数据</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:20px;">✅</div>
+                <div><div style="font-size:22px;font-weight:bold;color:#4caf50;">${activeSources}/${DB.dataSources.length}</div><div style="font-size:12px;color:#999;">活跃数据源</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#fff3e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📊</div>
+                <div><div style="font-size:22px;font-weight:bold;color:#ff9800;">98.5%</div><div style="font-size:12px;color:#999;">数据完整率</div></div>
+            </div>
+            <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:#ffebee;display:flex;align-items:center;justify-content:center;font-size:20px;">⚠️</div>
+                <div><div style="font-size:22px;font-weight:bold;color:#f44336;">3</div><div style="font-size:12px;color:#999;">异常数据</div></div>
+            </div>`;
+    }
+
     // 天气数据
     const weatherRes = apiGetWeather();
     if (weatherRes.code === 200) {
@@ -1697,17 +2256,45 @@ function loadAdminDatasource() {
             </div>`;
     }
 
+    // 传感器实时数据流
+    const streamDevRes = apiGetDevices();
+    if (streamDevRes.code === 200) {
+        const streamList = document.getElementById('sensor-stream-list');
+        if (streamList) {
+            streamList.innerHTML = streamDevRes.data.map(d => {
+                const latest = DB.flood_data.filter(f => f.device_id === d.device_id).slice(-1)[0] || {};
+                const level = latest.water_level !== undefined ? latest.water_level : (d.water_level || 0);
+                const risk = latest.risk_level || d.risk_level || 'green';
+                const time = latest.collect_time || d.collect_time || '-';
+                const riskColor = risk === 'red' ? '#f44336' : risk === 'orange' ? '#ff9800' : risk === 'yellow' ? '#f57f17' : '#4caf50';
+                return `<tr>
+                    <td>${d.device_id}</td>
+                    <td><strong>${d.name}</strong></td>
+                    <td style="font-weight:600;color:${riskColor};">${level}m</td>
+                    <td>${getRiskBadge(risk)}</td>
+                    <td style="font-size:12px;color:#666;">${time}</td>
+                    <td><span style="font-size:12px;color:#1976d2;">MQTT自动采集</span></td>
+                    <td><span class="status-dot status-online"></span><span style="font-size:12px;color:#4caf50;">正常</span></td>
+                </tr>`;
+            }).join('');
+        }
+    }
+
     // 数据源状态
     const sourceRes = apiGetDataSources();
     if (sourceRes.code === 200) {
+        const sourceIcons = { '传感器': '📡', '气象数据': '🌦️', '手动录入': '✍️', '文件导入': '📁', '公众上报': '👥', '卫星数据': '🛰️' };
         document.getElementById('datasource-list').innerHTML = sourceRes.data.map(s => `
-            <div class="source-card ${s.status === 'active' ? 'active' : 'inactive'}">
-                <div style="display:flex;justify-content:space-between;align-items:start;">
-                    <div><div class="source-name">${s.name}</div><div style="font-size:12px;color:#666;margin-top:4px;">${s.description}</div></div>
-                    <div><span class="badge badge-${s.status==='active'?'green':'yellow'}">${s.status==='active'?'运行中':'暂停'}</span></div>
-                </div>
-                <div style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:#999;">
-                    <div>来源：${s.source}</div><div>频率：${s.frequency}</div><div>同步：${s.last_sync}</div><div>累计：${s.total_records}条</div>
+            <div class="source-card ${s.status === 'active' ? 'active' : 'inactive'}" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:10px;margin-bottom:10px;border:1px solid #e0e0e0;background:${s.status==='active'?'#f1f8e9':'#fafafa'};">
+                <div style="width:42px;height:42px;border-radius:10px;background:${s.status==='active'?'#e8f5e9':'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${sourceIcons[s.type] || '📋'}</div>
+                <div style="flex:1;">
+                    <div style="display:flex;justify-content:space-between;align-items:start;">
+                        <div><div class="source-name" style="font-weight:bold;font-size:14px;color:#333;">${s.name}</div><div style="font-size:12px;color:#666;margin-top:4px;">${s.description}</div></div>
+                        <div><span class="badge badge-${s.status==='active'?'green':'yellow'}">${s.status==='active'?'🟢 运行中':'🟡 暂停'}</span></div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:#999;flex-wrap:wrap;">
+                        <div>🔗 ${s.source}</div><div>⏱️ ${s.frequency}</div><div>🔄 ${s.last_sync}</div><div>📊 ${s.total_records}条</div>
+                    </div>
                 </div>
             </div>`).join('');
     }
@@ -1719,15 +2306,61 @@ function loadAdminDatasource() {
         if (sel && !sel.options.length) { sel.innerHTML = devRes.data.map(d => `<option value="${d.device_id}">${d.device_id} - ${d.name}</option>`).join(''); }
     }
 
+    // 数据质量监控
+    const qualityDiv = document.getElementById('data-quality-panel');
+    if (qualityDiv) {
+        qualityDiv.innerHTML = `
+            <div style="display:grid;gap:16px;grid-template-columns:1fr 1fr 1fr;margin-bottom:12px;">
+                <div class="info-card" style="text-align:center;margin:0;">
+                    <div style="font-size:28px;font-weight:bold;color:#4caf50;">98.5%</div>
+                    <div style="font-size:13px;color:#666;margin-top:4px;">数据完整率</div>
+                    <div style="font-size:11px;color:#4caf50;margin-top:2px;">↑ 较昨日 +0.3%</div>
+                </div>
+                <div class="info-card" style="text-align:center;margin:0;">
+                    <div style="font-size:28px;font-weight:bold;color:#2196f3;">99.2%</div>
+                    <div style="font-size:13px;color:#666;margin-top:4px;">数据准确率</div>
+                    <div style="font-size:11px;color:#4caf50;margin-top:2px;">↑ 较昨日 +0.1%</div>
+                </div>
+                <div class="info-card" style="text-align:center;margin:0;">
+                    <div style="font-size:28px;font-weight:bold;color:#ff9800;">95.8%</div>
+                    <div style="font-size:13px;color:#666;margin-top:4px;">数据时效性</div>
+                    <div style="font-size:11px;color:#999;margin-top:2px;">平均延迟 2.3s</div>
+                </div>
+            </div>
+            <div style="display:grid;gap:12px;grid-template-columns:1fr 1fr;">
+                <div style="padding:12px;background:#f5f5f5;border-radius:8px;">
+                    <div style="font-size:13px;font-weight:bold;color:#333;margin-bottom:8px;">📋 各数据源采集统计</div>
+                    <div style="font-size:12px;color:#666;line-height:1.8;">
+                        <div style="display:flex;justify-content:space-between;"><span>📡 水位传感器</span><strong>${DB.dataSources[0].total_records} 条</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>🌦️ 气象局API</span><strong>${DB.dataSources[1].total_records} 条</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>✍️ 人工录入</span><strong>${DB.dataSources[2].total_records} 条</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>📁 CSV批量导入</span><strong>${DB.dataSources[3].total_records} 条</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>👥 公众上报</span><strong>${DB.dataSources[4].total_records} 条</strong></div>
+                        <div style="display:flex;justify-content:space-between;"><span>🛰️ 卫星遥感</span><strong>${DB.dataSources[5].total_records} 条</strong></div>
+                    </div>
+                </div>
+                <div style="padding:12px;background:#f5f5f5;border-radius:8px;">
+                    <div style="font-size:13px;font-weight:bold;color:#333;margin-bottom:8px;">📝 质量评估说明</div>
+                    <div style="font-size:12px;color:#666;line-height:1.8;">
+                        <div><strong style="color:#4caf50;">完整率</strong> = 实际采集 / 应采集数据</div>
+                        <div><strong style="color:#2196f3;">准确率</strong> = 校验通过 / 总数据量</div>
+                        <div><strong style="color:#ff9800;">时效性</strong> = 5分钟内到达 / 总数据量</div>
+                        <div style="margin-top:6px;color:#999;">最近异常：DEV003 数据延迟上报（已恢复）</div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
     // 导入历史
     const histRes = apiGetImportHistory();
     if (histRes.code === 200) {
         document.getElementById('import-history-list').innerHTML = histRes.data.slice(0, 15).map(h => `
             <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid #f0f0f0;font-size:13px;">
+                <div style="width:28px;font-size:16px;">${h.status==='success'?'✅':'❌'}</div>
                 <div style="flex:1;"><strong>${h.source}</strong> - 导入 ${h.records} 条数据</div>
                 <div style="width:80px;"><span class="badge badge-${h.status==='success'?'green':'red'}">${h.status==='success'?'成功':'失败'}</span></div>
-                <div style="width:80px;font-size:12px;color:#999;">${h.operator}</div>
-                <div style="width:140px;font-size:12px;color:#999;">${h.created_at}</div>
+                <div style="width:80px;font-size:12px;color:#999;">👤 ${h.operator}</div>
+                <div style="width:140px;font-size:12px;color:#999;">🕐 ${h.created_at}</div>
             </div>`).join('');
     }
 }
@@ -1745,110 +2378,6 @@ function submitBatchImport() {
     const res = apiBatchImport(count);
     if (res.code === 200) { showToast(res.message); loadAdminDatasource(); }
 }
-
-// ==================== 应急指挥调度 ====================
-function loadAdminDispatch() {
-    // 资源概览
-    const resRes = apiGetResources();
-    if (resRes.code === 200) {
-        const r = resRes.data;
-        document.getElementById('dispatch-resources').innerHTML = `
-            <div class="resource-item"><div class="icon">🔧</div><div class="val">${r.pumps}</div><div class="lbl">排水泵（台）</div></div>
-            <div class="resource-item"><div class="icon">🚛</div><div class="val">${r.rescue_vehicles}</div><div class="lbl">救援车辆</div></div>
-            <div class="resource-item"><div class="icon">🚤</div><div class="val">${r.boats}</div><div class="lbl">冲锋舟</div></div>
-            <div class="resource-item"><div class="icon">🧱</div><div class="val">${r.sandbags}</div><div class="lbl">沙袋（个）</div></div>
-            <div class="resource-item"><div class="icon">🦺</div><div class="val">${r.life_jackets}</div><div class="lbl">救生衣</div></div>
-            <div class="resource-item"><div class="icon">📻</div><div class="val">${r.communication_sets}</div><div class="lbl">通信设备</div></div>
-            <div class="resource-item"><div class="icon">💰</div><div class="val">${r.emergency_funds}</div><div class="lbl">应急资金</div></div>
-            <div class="resource-item"><div class="icon">👥</div><div class="val">85</div><div class="lbl">在岗人员</div></div>
-            <div class="resource-item"><div class="icon">🚨</div><div class="val">4</div><div class="lbl">活跃事件</div></div>`;
-    }
-
-    // 应急事件
-    const evtRes = apiGetEmergencyEvents();
-    if (evtRes.code === 200) {
-        const levelMap = { critical: '严重', warning: '关注', info: '提示' };
-        const levelBadge = { critical: 'badge-red', warning: 'badge-orange', info: 'badge-yellow' };
-        const statusMap = { active: '🚨 正在处置', monitoring: '👀 持续监控', resolved: '✅ 已解决' };
-        document.getElementById('dispatch-events').innerHTML = evtRes.data.map(e => `
-            <div class="event-card ${e.level}">
-                <div class="event-header"><div class="event-title">${e.title} <span class="badge ${levelBadge[e.level]}">${levelMap[e.level]}</span></div><div style="font-size:12px;color:#999;">${statusMap[e.status]||e.status} | ${e.started_at}</div></div>
-                <div style="margin-top:8px;font-size:14px;color:#333;">📍 ${e.location}</div>
-                <div style="font-size:13px;color:#666;margin-top:4px;">${e.description}</div>
-                <div style="display:flex;gap:8px;margin-top:8px;font-size:12px;">
-                    <div style="padding:4px 10px;background:#e3f2fd;border-radius:6px;color:#1976d2;">积水：${e.water_depth}</div>
-                    <div style="padding:4px 10px;background:#fce4ec;border-radius:6px;color:#c62828;">影响面积：${e.affected_area}</div>
-                    <div style="padding:4px 10px;background:#fff3e0;border-radius:6px;color:#e65100;">影响人群：约${e.affected_people}人</div>
-                    ${e.teams.length > 0 ? `<div style="padding:4px 10px;background:#e8f5e9;border-radius:6px;color:#2e7d32;">已派遣：${e.teams.join(', ')}</div>` : ''}
-                </div>
-                <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
-                    <span class="nav-link-btn blue" onclick="goToMap()">🗺 地图查看</span>
-                    <span class="nav-link-btn purple" onclick="goToControl()">🎛 操控设备</span>
-                    <span class="nav-link-btn red" onclick="goToAlerts()">⚠️ 预警记录</span>
-                    <span class="nav-link-btn green" onclick="goToHistory()">📈 历史数据</span>
-                </div>
-            </div>`).join('');
-    }
-
-    // 救援力量
-    const teamRes = apiGetRescueTeams();
-    if (teamRes.code === 200) {
-        const statusMap = { dispatched: '已出动', standby: '待命', active: '值班中' };
-        const statusColor = { dispatched: '#c62828', standby: '#ff9800', active: '#2196f3' };
-        const typeIcon = { '排水': '🔧', '消防救援': '🚒', '交通管制': '👮', '指挥协调': '🎯', '社区协助': '🙋' };
-        document.getElementById('dispatch-teams').innerHTML = teamRes.data.map(t => `
-            <div class="team-card">
-                <div class="team-icon" style="background:${statusColor[t.status]||'#999'}20;color:${statusColor[t.status]||'#999'};">${typeIcon[t.type]||'👥'}</div>
-                <div class="team-info">
-                    <div class="team-name">${t.name} <span class="badge badge-${t.status==='dispatched'?'red':t.status==='standby'?'orange':'green'}" style="margin-left:8px;">${statusMap[t.status]}</span></div>
-                    <div class="team-detail">队长：${t.captain} | ${t.personnel}人 | ${t.location} | 📞 ${t.phone}</div>
-                    <div class="team-detail" style="margin-top:4px;">装备：${t.equipment}</div>
-                </div>
-                ${t.status === 'standby' ? `<button class="btn btn-danger btn-sm" onclick="quickDispatchTeam('${t.name}')">派遣</button>` : ''}
-            </div>`).join('');
-    }
-
-    // 调度指令下拉框
-    if (evtRes.code === 200) {
-        const sel = document.getElementById('dispatch-event');
-        if (sel && !sel.options.length) { sel.innerHTML = evtRes.data.map(e => `<option value="${e.id}">${e.title}</option>`).join(''); }
-    }
-    if (teamRes.code === 200) {
-        const sel = document.getElementById('dispatch-team');
-        if (sel && !sel.options.length) { sel.innerHTML = teamRes.data.map(t => `<option value="${t.name}">${t.name}</option>`).join(''); }
-    }
-
-    // 已发布调度指令
-    const cmdRes = apiGetDispatchCommands();
-    if (cmdRes.code === 200) {
-        const statusMap = { '执行中': 'badge-orange', '已执行': 'badge-green', '持续监控': 'badge-yellow' };
-        document.getElementById('dispatch-cmd-list').innerHTML = cmdRes.data.length === 0 ? '<div style="text-align:center;padding:20px;color:#999;">暂无调度指令</div>' :
-            cmdRes.data.map(c => `<div class="dispatch-cmd">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div><strong>${c.command}</strong></div>
-                    <span class="badge ${statusMap[c.status]||'badge-green'}">${c.status}</span>
-                </div>
-                <div style="margin-top:4px;font-size:12px;color:#999;">执行单位：${c.team} | 发布人：${c.issued_by} | ${c.issued_at}</div>
-            </div>`).join('');
-    }
-}
-
-function issueDispatchCommand() {
-    const eventId = parseInt(document.getElementById('dispatch-event').value);
-    const command = document.getElementById('dispatch-command').value;
-    const team = document.getElementById('dispatch-team').value;
-    if (!command || !team) { showToast('请填写指令内容并选择执行单位'); return; }
-    const res = apiIssueDispatchCommand(eventId, command, team);
-    if (res.code === 200) { showToast('调度指令已发布！'); document.getElementById('dispatch-command').value = ''; loadAdminDispatch(); }
-}
-
-function quickDispatchTeam(teamName) {
-    const eventId = parseInt(document.getElementById('dispatch-event').value) || 1;
-    const command = `紧急派遣${teamName}前往内涝现场支援`;
-    const res = apiIssueDispatchCommand(eventId, command, teamName);
-    if (res.code === 200) { showToast('已派遣 ' + teamName + '！'); loadAdminDispatch(); }
-}
-
 // ==================== 初始化 ====================
 initFloodData();
 setInterval(() => { simulateUpdate(); if (!currentUser) return; const activeNav = document.querySelector('#nav-menu a.active'); if (!activeNav) return; const navId = activeNav.id; if (currentUser.role === 'admin') { if (navId === 'nav-dashboard') loadAdminDashboard(); if (navId === 'nav-map') loadAdminMap(); } else { if (navId === 'nav-realtime') loadUserRealtime(); if (navId === 'nav-alerts') loadUserAlerts(); } }, 30000);
