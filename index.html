@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>基于AI的城市内涝智能监测评估系统 - 宜春市</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; }
@@ -1629,11 +1629,17 @@ function showAddDeviceModal() { showModal(`<h3>添加监测设备</h3><label>设
 function submitAddDevice() { const data = { device_id: document.getElementById('new-device-id').value, name: document.getElementById('new-device-name').value, location: document.getElementById('new-device-location').value, longitude: parseFloat(document.getElementById('new-device-lng').value), latitude: parseFloat(document.getElementById('new-device-lat').value) }; if (!data.device_id || !data.name) { showToast('设备ID和名称不能为空'); return; } const res = apiAddDevice(data); if (res.code === 200) { closeModal(); loadAdminDevices(); showToast('设备添加成功！'); } }
 function deleteDevice(id) { if (!confirm('确定删除设备 ' + id + '？')) return; const res = apiDeleteDevice(id); if (res.code === 200) { loadAdminDevices(); showToast('设备已删除'); } }
 
-// ==================== 真实地图（Leaflet + 高德瓦片） ====================
+// ==================== 真实地图（Leaflet + OpenStreetMap） ====================
 var floodMap = null;
 var mapMarkers = {};
+// Leaflet 加载失败时的 fallback
+var leafletLoaded = (typeof L !== 'undefined');
 
 function loadAdminMap() {
+    if (!leafletLoaded) {
+        document.getElementById('admin-map-content').innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:48px;">🗺️</div><h3 style="color:#1a237e;margin:12px 0;">地图加载中</h3><p style="color:#666;">地图组件正在加载，请稍候刷新。<br>如持续无法显示，请检查网络连接。</p><button class="btn btn-primary" onclick="location.reload()">刷新页面</button></div>';
+        return;
+    }
     const res = apiGetRiskAssess();
     if (res.code === 200) {
         const devices = res.data.devices;
